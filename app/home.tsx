@@ -8,6 +8,8 @@ import {
   ScrollView,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import TopBar from "../components/TopBar";
+import BottomNavBar from "../components/BottomNavBar";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -15,43 +17,22 @@ export default function HomeScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-
       <View style={styles.container}>
+        {/* Reusable TopBar */}
+        <TopBar
+          title=""
+          showLocation
+          showMenu
+          onMenuPress={() => console.log("Menu pressed")}
+          onBellPress={() => console.log("Bell pressed")}
+        />
+
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <TouchableOpacity>
-              <Image
-                source={require("../assets/icons/menu.png")}
-                style={[styles.icon, styles.brownTint]}
-              />
-            </TouchableOpacity>
-
-            <View style={styles.locationWrapper}>
-              <Image
-                source={require("../assets/icons/location.png")}
-                style={[styles.locationIcon, styles.brownTint]}
-              />
-              <View>
-                <Text style={styles.locationText}>Sector I8/2</Text>
-                <Text style={styles.cityText}>Islamabad</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity>
-              <Image
-                source={require("../assets/icons/bell.png")}
-                style={[styles.icon, styles.brownTint]}
-              />
-            </TouchableOpacity>
-          </View>
-
           {/* Banner Section */}
           <View style={styles.bannerContainer}>
             <Text style={styles.bannerText}>
               Graceful Goodbyes, Simplified with Technology
             </Text>
-
             <Image
               source={require("../assets/images/banner2.png")}
               style={[styles.banner, { marginTop: 10 }]}
@@ -134,60 +115,31 @@ export default function HomeScreen() {
           </View>
 
           {/* Guidance */}
-<Text style={styles.sectionTitle}>Guidance</Text>
-<TouchableOpacity
-  style={styles.guidanceCard}
-  onPress={() => router.push("/guidance")}
->
-  <Image
-    source={require("../assets/images/ghusl.png")}
-    style={styles.guidanceImage}
-  />
-  <Text style={styles.guidanceText}>
-    Step-by-step guidance on performing the ghusal (ritual washing) of
-    a deceased person according to Islamic teachings.
-  </Text>
-</TouchableOpacity>
-
+          <Text style={styles.sectionTitle}>Guidance</Text>
+          <TouchableOpacity
+            style={styles.guidanceCard}
+            onPress={() => router.push("/guidance")}
+          >
+            <Image
+              source={require("../assets/images/ghusl.png")}
+              style={styles.guidanceImage}
+            />
+            <Text style={styles.guidanceText}>
+              Step-by-step guidance on performing the ghusal (ritual washing) of
+              a deceased person according to Islamic teachings.
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
 
-        {/* Bottom Navigation */}
-        <View style={styles.navbar}>
-          <NavItem
-            label="Home"
-            icon={require("../assets/icons/home.png")}
-            active
-          />
-          <NavItem
-            label="Packages"
-            icon={require("../assets/icons/packages.png")}
-            onPress={() => router.push("/basic-package")}
-          />
-
-          {/* Floating Call Button */}
-          <TouchableOpacity style={styles.callButton}>
-            <Image
-              source={require("../assets/icons/call.png")}
-              style={styles.callIcon}
-            />
-          </TouchableOpacity>
-
-          <NavItem
-            label="Contact"
-            icon={require("../assets/icons/contact.png")}
-          />
-          <NavItem
-            label="Message"
-            icon={require("../assets/icons/message.png")}
-          />
-        </View>
+        {/* Reusable BottomNavBar */}
+        <BottomNavBar activeTab="Home" />
       </View>
     </>
   );
 }
 
 //
-// Reusable Components
+// Reusable Inner Components
 //
 type ServiceItemProps = {
   label: string;
@@ -220,40 +172,11 @@ const ServiceCard = ({ title, desc, image, onPress }: ServiceCardProps) => (
   </TouchableOpacity>
 );
 
-type NavItemProps = {
-  label: string;
-  icon: any;
-  active?: boolean;
-  onPress?: () => void;
-};
-
-const NavItem = ({ label, icon, active, onPress }: NavItemProps) => (
-  <TouchableOpacity style={styles.navItem} onPress={onPress}>
-    <Image
-      source={icon}
-      style={[styles.navIcon, active && styles.activeIcon]}
-    />
-    <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
-  </TouchableOpacity>
-);
-
 //
 // Styles
 //
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 15,
-  },
-  icon: { width: 22, height: 22, resizeMode: "contain" },
-  brownTint: { tintColor: "#8B4513" },
-  locationWrapper: { flexDirection: "row", alignItems: "center", gap: 6 },
-  locationIcon: { width: 20, height: 20, resizeMode: "contain" },
-  locationText: { fontSize: 14, fontWeight: "600", color: "#8B4513" },
-  cityText: { fontSize: 12, color: "#8B4513" },
   bannerContainer: { paddingHorizontal: 15, marginTop: 10 },
   banner: { width: "100%", height: 120, borderRadius: 12 },
   bannerText: {
@@ -323,32 +246,4 @@ const styles = StyleSheet.create({
   },
   guidanceImage: { width: 60, height: 60, marginRight: 15, borderRadius: 8 },
   guidanceText: { flex: 1, fontSize: 13, color: "#333" },
-  navbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  callButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -30,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  callIcon: { width: 28, height: 28, tintColor: "#8B4513" },
-  navItem: { alignItems: "center" },
-  navIcon: { width: 22, height: 22, marginBottom: 2 },
-  navLabel: { fontSize: 10, color: "#666" },
-  activeIcon: { tintColor: "#3c1a06" },
-  activeLabel: { color: "#3c1a06", fontWeight: "600" },
 });
