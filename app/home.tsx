@@ -10,6 +10,7 @@ import {
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
+import FloatingCallButton from "../components/FloatingAgentButton";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -132,6 +133,7 @@ export default function HomeScreen() {
         </ScrollView>
 
         {/* Reusable BottomNavBar */}
+        <FloatingCallButton />
         <BottomNavBar activeTab="Home" />
       </View>
     </>
