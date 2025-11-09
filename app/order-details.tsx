@@ -93,7 +93,9 @@ export default function OrderDetailsScreen() {
         </View>
 
         {/* Proceed to Payment */}
-        <TouchableOpacity style={styles.payButton}>
+        <TouchableOpacity style={styles.payButton}
+        onPress={() => router.push("/order-confirmation")}
+>
           <Text style={styles.payButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
       </ScrollView>
