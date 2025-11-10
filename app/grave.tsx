@@ -1,55 +1,44 @@
-         import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import TopBar from "../components/TopBar";
+import BottomNavBar from "../components/BottomNavBar";
+import FloatingCallButton from "../components/FloatingAgentButton";
 
 export default function GraveScreen() {
   const router = useRouter();
+
+  const service = {
+    name: "Grave",
+    desc: "Grave selection, purchase, and digging service.",
+    price: 40000,
+  };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Image
-                source={require("../assets/icons/back.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Image
-                source={require("../assets/icons/bell.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-          </View>
+        {/* ✅ Top Bar */}
+        <TopBar title="Grave Services" />
 
-          {/* Grave Image */}
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* ✅ Grave Image */}
           <Image
             source={require("../assets/images/grave-detail.png")}
             style={styles.mainImage}
             resizeMode="contain"
           />
 
-          {/* Grave Details */}
-          <Text style={styles.title}>Grave</Text>
+          {/* ✅ Grave Details */}
+          <Text style={styles.title}>{service.name}</Text>
           <Text style={styles.desc}>
             We assist in grave selection, purchasing, and digging to ensure a
             smooth burial process. Our service includes reserved plots and
             immediate arrangements.
           </Text>
 
-          {/* Grave Options */}
+          {/* ✅ Options */}
           <View style={styles.option}>
             <Image
               source={require("../assets/icons/earthen.png")}
@@ -71,73 +60,44 @@ export default function GraveScreen() {
               source={require("../assets/icons/planks.png")}
               style={styles.optionIcon}
             />
-            <Text style={styles.optionText}>Grave digging and Planks</Text>
+            <Text style={styles.optionText}>Grave Digging and Planks</Text>
           </View>
+
+          {/* ✅ Order Now Button */}
+          <TouchableOpacity
+            style={styles.orderButton}
+            onPress={() =>
+              router.push({
+                pathname: "/order-details",
+                params: {
+                  packageName: service.name,
+                  items: JSON.stringify([{ name: service.name, price: service.price }]),
+                },
+              })
+            }
+          >
+            <Text style={styles.orderText}>Order Now</Text>
+          </TouchableOpacity>
         </ScrollView>
 
-        {/* Bottom Navigation */}
-        <View style={styles.navbar}>
-          <NavItem label="Home" icon={require("../assets/icons/home.png")} active />
-          <NavItem label="Packages" icon={require("../assets/icons/packages.png")} />
+        {/* ✅ Floating Agent Button */}
+        <FloatingCallButton />
 
-          {/* Floating Call Button */}
-          <TouchableOpacity style={styles.callButton}>
-            <Image
-              source={require("../assets/icons/call.png")}
-              style={styles.callIcon}
-            />
-          </TouchableOpacity>
-
-          <NavItem label="Contact" icon={require("../assets/icons/contact.png")} />
-          <NavItem label="Message" icon={require("../assets/icons/message.png")} />
-        </View>
+        {/* ✅ Bottom Nav Bar */}
+        <BottomNavBar activeTab="Packages" />
       </View>
     </>
   );
 }
 
 //
-// Reusable Navbar Item
-//
-type NavItemProps = {
-  label: string;
-  icon: any;
-  active?: boolean;
-};
-
-const NavItem = ({ label, icon, active }: NavItemProps) => (
-  <TouchableOpacity style={styles.navItem}>
-    <Image
-      source={icon}
-      style={[styles.navIcon, active && styles.activeIcon]}
-    />
-    <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
-  </TouchableOpacity>
-);
-
-//
-// Styles
+// ✅ Styles
 //
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  topIcon: {
-    width: 26,
-    height: 26,
-    tintColor: "#5a3d2b",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
   mainImage: {
     width: "100%",
-    height: 260, // Increased height
+    height: 260,
     marginBottom: 20,
   },
   title: {
@@ -161,7 +121,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   optionIcon: {
-    width: 28, // Increased size
+    width: 28,
     height: 28,
     marginRight: 12,
     tintColor: "#8B4513",
@@ -170,52 +130,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-
-  // Navbar
-  navbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
+  orderButton: {
+    alignSelf: "center",
+    backgroundColor: "#5a3d2b",
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 30,
+    marginBottom: 70,
+    elevation: 3,
   },
-  navItem: {
-    alignItems: "center",
-  },
-  navIcon: {
-    width: 22,
-    height: 22,
-    marginBottom: 2,
-  },
-  navLabel: {
-    fontSize: 10,
-  },
-  activeIcon: {
-    tintColor: "#8B4513",
-  },
-  activeLabel: {
-    color: "#8B4513",
+  orderText: {
+    color: "#fff",
+    fontSize: 16,
     fontWeight: "600",
   },
-  callButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -30, // floats above navbar
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  callIcon: {
-    width: 28,
-    height: 28,
-    tintColor: "#8B4513",
-  },
 });
-
