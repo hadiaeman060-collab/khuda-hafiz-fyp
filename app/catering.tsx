@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  ScrollView,
-} from "react-native";
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "react-native";
 import { Stack, useRouter } from "expo-router";
 
 // Import Components
@@ -16,16 +10,21 @@ import FloatingCallButton from "../components/FloatingAgentButton";
 export default function CateringScreen() {
   const router = useRouter();
 
+  const service = {
+    name: "Catering",
+    desc: "We provide meal arrangements for condolence gatherings, offering hassle-free catering with respectful service to support grieving families.",
+    price: 120000, // Set your actual price here
+  };
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        {/* ✅ Top Bar Component */}
-        <TopBar />
+        {/* Top Bar */}
+        <TopBar title="Catering" onBackPress={() => router.back()} />
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-          
+        <ScrollView showsVerticalScrollIndicator={false}>
           {/* Catering Image */}
           <Image
             source={require("../assets/images/catering image.png")}
@@ -34,12 +33,8 @@ export default function CateringScreen() {
           />
 
           {/* Catering Details */}
-          <Text style={styles.title}>Catering</Text>
-          <Text style={styles.desc}>
-            We provide the meal arrangements for condolence 
-            gatherings, offering hassle-free catering with 
-            respectful service to support grieving families.
-          </Text>
+          <Text style={styles.title}>{service.name}</Text>
+          <Text style={styles.desc}>{service.desc}</Text>
 
           {/* Catering Options */}
           <View style={styles.option}>
@@ -65,13 +60,29 @@ export default function CateringScreen() {
             />
             <Text style={styles.optionText}>Hygienic, Fresh & Sunnah-conscious</Text>
           </View>
+
+          {/* Order Now Button */}
+          <TouchableOpacity
+            style={styles.orderButton}
+            onPress={() =>
+              router.push({
+                pathname: "/order-details",
+                params: {
+                  packageName: service.name,
+                  items: JSON.stringify([{ name: service.name, price: service.price }]),
+                },
+              })
+            }
+          >
+            <Text style={styles.orderText}>Order Now</Text>
+          </TouchableOpacity>
         </ScrollView>
 
-        {/* ✅ Floating Call Button */}
+        {/* Floating Call Button */}
         <FloatingCallButton />
 
-        {/* ✅ Bottom Navigation */}
-        <BottomNavBar activeTab="Home" />
+        {/* Bottom Nav Bar */}
+        <BottomNavBar activeTab="Packages" />
       </View>
     </>
   );
@@ -81,10 +92,7 @@ export default function CateringScreen() {
 // Styles
 //
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
   mainImage: {
     width: "100%",
     height: 260,
@@ -119,5 +127,20 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 14,
     color: "#333",
+  },
+  orderButton: {
+    alignSelf: "center",
+    backgroundColor: "#5a3d2b",
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 30,
+    marginBottom: 70,
+    elevation: 3,
+  },
+  orderText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
