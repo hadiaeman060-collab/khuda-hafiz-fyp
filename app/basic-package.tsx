@@ -7,8 +7,8 @@ import {
   ScrollView,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
-import TopBar from "../components/TopBar";
-import BottomNavBar from "../components/BottomNavBar";
+import TopBar from "../components/TopBar"; // ✅ added
+import BottomNavBar from "../components/BottomNavBar"; // ✅ added
 
 export default function BasicPackageScreen() {
   const router = useRouter();
@@ -18,9 +18,11 @@ export default function BasicPackageScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
+        {/* ✅ Top Component */}
         <TopBar title="Packages" />
 
         <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Tabs */}
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => router.push("/basic-package")}>
               <Text style={[styles.tab, styles.activeTab]}>Basic</Text>

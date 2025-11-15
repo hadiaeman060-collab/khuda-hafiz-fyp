@@ -18,6 +18,7 @@ export default function AiIntegrationScreen() {
 
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Top Bar */}
           <View style={styles.topBar}>
             <TouchableOpacity onPress={() => router.back()}>
               <Image
@@ -43,9 +44,10 @@ export default function AiIntegrationScreen() {
           {/* Ai-Integration Details */}
           <Text style={styles.title}>AI Integration & Chatbot Solutions</Text>
           <Text style={styles.desc}>
-            Empowering social platforms with intelligent chatbot solutions
-            designed to boost engagement, answer queries instantly, and build
-            stronger, more connected communities
+            Empowering social platforms with intelligent 
+            chatbot solutions designed to boost engagement, 
+            answer queries instantly, and build stronger, 
+            more connected communities
           </Text>
 
           {/* Ai-Integration Options */}
@@ -76,15 +78,8 @@ export default function AiIntegrationScreen() {
 
         {/* Bottom Navigation */}
         <View style={styles.navbar}>
-          <NavItem
-            label="Home"
-            icon={require("../assets/icons/home.png")}
-            active
-          />
-          <NavItem
-            label="Packages"
-            icon={require("../assets/icons/packages.png")}
-          />
+          <NavItem label="Home" icon={require("../assets/icons/home.png")} active />
+          <NavItem label="Packages" icon={require("../assets/icons/packages.png")} />
 
           {/* Floating Call Button */}
           <TouchableOpacity style={styles.callButton}>
@@ -94,14 +89,8 @@ export default function AiIntegrationScreen() {
             />
           </TouchableOpacity>
 
-          <NavItem
-            label="Contact"
-            icon={require("../assets/icons/contact.png")}
-          />
-          <NavItem
-            label="Message"
-            icon={require("../assets/icons/message.png")}
-          />
+          <NavItem label="Contact" icon={require("../assets/icons/contact.png")} />
+          <NavItem label="Message" icon={require("../assets/icons/message.png")} />
         </View>
       </View>
     </>
@@ -157,7 +146,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginHorizontal: 15,
     marginBottom: 10,
-    color: "#0000",
+    color: "#000",
   },
   desc: {
     fontSize: 14,
