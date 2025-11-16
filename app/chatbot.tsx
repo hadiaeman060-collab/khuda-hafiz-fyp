@@ -10,46 +10,49 @@ import {
 } from "react-native";
 import axios from "axios";
 import TopBar from "../components/TopBar";
-//import { GEMINI_API_KEY } from "../config/geminiConfig"; // ✅ New Gemini config
+
+type Message = {
+  sender: "user" | "bot";
+  text: string;
+};
 
 export default function Chatbot() {
-  const [messages, setMessages] = useState([
-    { sender: "bot", text: "Assalamu Alaikum! I'm your Khuda Hafiz AI assistant. How can I help you today?" },
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      sender: "bot",
+      text: "Assalamu Alaikum! I'm your Khuda Hafiz AI assistant. How can I help you today?",
+    },
   ]);
-  const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [inputText, setInputText] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
 
-    const newMessage = { sender: "user", text: inputText };
+    const newMessage: Message = { sender: "user", text: inputText };
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
     setInputText("");
     setLoading(true);
 
     try {
-      const userPrompt = updatedMessages
-        .map((msg) => `${msg.sender === "user" ? "User" : "Bot"}: ${msg.text}`)
-        .join("\n");
-
+      // 🔹 Send message to your backend
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          contents: [{ parts: [{ text: userPrompt }] }],
-        }
+        "http://192.168.1.5:3000/chat", // ← Your backend IP
+        { messages: updatedMessages }
       );
 
-      const botReply =
-        response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        "Sorry, I couldn’t get a proper response.";
+      const botReply: string = response.data.reply;
 
       setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
     } catch (error) {
-      console.error("Gemini API error:", error);
+      console.error("Backend error:", error);
       setMessages((prev) => [
         ...prev,
-        { sender: "bot", text: "Sorry, something went wrong. Please try again later." },
+        {
+          sender: "bot",
+          text: "Sorry, something went wrong. Please try again later.",
+        },
       ]);
     } finally {
       setLoading(false);
@@ -93,31 +96,12 @@ export default function Chatbot() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  chatContainer: {
-    flex: 1,
-    padding: 15,
-  },
-  message: {
-    marginVertical: 6,
-    padding: 12,
-    borderRadius: 10,
-    maxWidth: "80%",
-  },
-  userMsg: {
-    backgroundColor: "#DCF8C6",
-    alignSelf: "flex-end",
-  },
-  botMsg: {
-    backgroundColor: "#F0F0F0",
-    alignSelf: "flex-start",
-  },
-  msgText: {
-    fontSize: 16,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  chatContainer: { flex: 1, padding: 15 },
+  message: { marginVertical: 6, padding: 12, borderRadius: 10, maxWidth: "80%" },
+  userMsg: { backgroundColor: "#DCF8C6", alignSelf: "flex-end" },
+  botMsg: { backgroundColor: "#F0F0F0", alignSelf: "flex-start" },
+  msgText: { fontSize: 16 },
   inputContainer: {
     flexDirection: "row",
     padding: 10,
@@ -126,24 +110,7 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     alignItems: "center",
   },
-  input: {
-    flex: 1,
-    height: 45,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 25,
-    paddingHorizontal: 15,
-  },
-  sendBtn: {
-    backgroundColor: "#e57e1eff",
-    marginLeft: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 25,
-  },
-  sendText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  input: { flex: 1, height: 45, borderWidth: 1, borderColor: "#ccc", borderRadius: 25, paddingHorizontal: 15 },
+  sendBtn: { backgroundColor: "#e57e1eff", marginLeft: 8, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 25 },
+  sendText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
