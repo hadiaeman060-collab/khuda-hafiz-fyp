@@ -1,37 +1,65 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Animated,
+  Easing,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router"; // 👈 import router
+import { useRouter } from "expo-router";
 
 export default function SplashScreen() {
   const router = useRouter();
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(flipAnim, {
+        toValue: 2,
+        duration: 1000, // adjust speed (lower = faster)
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  // Interpolate rotation for a flip effect
+  const rotateY = flipAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   return (
     <LinearGradient
       colors={["#0d0b0a", "#3c1a06", "#5b2508"]}
       style={styles.container}
     >
-      {/* Title */}
       <Text style={styles.title}>Welcome{"\n"}To{"\n"}Khuda Hafiz</Text>
 
-      {/* Circular Logo */}
-      <View style={styles.logoCircle}>
+      <Animated.View
+        style={[
+          styles.logoCircle,
+          { transform: [{ rotateY }] }, // 👈 flip animation
+        ]}
+      >
         <Image
           source={require("../assets/logo.png")}
           style={styles.logo}
           resizeMode="cover"
         />
-      </View>
+      </Animated.View>
 
-      {/* Subtitle */}
       <Text style={styles.subtitle}>
         Compassionate and dignified funeral services, bringing care to life’s
         hardest moments.
       </Text>
 
-      {/* Button */}
       <TouchableOpacity
         style={styles.button}
-        onPress={() => router.push("/signup")} // 👈 navigate to signup.tsx
+        onPress={() => router.push("/signup")}
       >
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
@@ -65,6 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 30,
     overflow: "hidden",
+    backfaceVisibility: "hidden", // prevents mirror showing
   },
   logo: {
     width: "100%",

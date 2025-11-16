@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
 import FloatingCallButton from "../components/FloatingAgentButton";
+import MenuModal from "../components/MenuModal";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   return (
     <>
@@ -24,8 +26,13 @@ export default function HomeScreen() {
           title=""
           showLocation
           showMenu
-          onMenuPress={() => console.log("Menu pressed")}
+          onMenuPress={() => setMenuVisible(true)}
           onBellPress={() => console.log("Bell pressed")}
+        />
+
+        <MenuModal
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
         />
 
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -248,4 +255,5 @@ const styles = StyleSheet.create({
   },
   guidanceImage: { width: 60, height: 60, marginRight: 15, borderRadius: 8 },
   guidanceText: { flex: 1, fontSize: 13, color: "#333" },
+  /* modal moved into components/MenuModal.tsx */
 });
