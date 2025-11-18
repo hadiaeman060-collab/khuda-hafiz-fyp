@@ -10,6 +10,10 @@ import {
   Dimensions,
   Pressable,
 } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 
@@ -24,13 +28,17 @@ type NavItemProps = {
 
 const NavItem = ({ label, icon, active, onPress }: NavItemProps) => (
   <TouchableOpacity style={styles.navItem} onPress={onPress}>
-    <Image source={icon} style={[styles.navIcon, active && styles.activeIcon]} />
+    <Image
+      source={icon}
+      style={[styles.navIcon, active && styles.activeIcon]}
+    />
     <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
   </TouchableOpacity>
 );
 
 export default function BottomNavBar({ activeTab = "Home" }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // ✅ Animations
   const scale = useRef(new Animated.Value(1)).current;
@@ -79,7 +87,10 @@ export default function BottomNavBar({ activeTab = "Home" }) {
       <Animated.View
         style={[
           styles.floatingCallButton,
-          { transform: [{ scale }, { translateY: positionY }] },
+          {
+            transform: [{ scale }, { translateY: positionY }],
+            bottom: insets.bottom + 16,
+          },
         ]}
       >
         <TouchableOpacity onPress={animatePress} activeOpacity={0.9}>
@@ -91,37 +102,47 @@ export default function BottomNavBar({ activeTab = "Home" }) {
       </Animated.View>
 
       {/* ✅ Bottom Navbar */}
-      <View style={styles.navbar}>
-        <NavItem
-          label="Home"
-          icon={require("../assets/icons/home.png")}
-          active={activeTab === "Home"}
-          onPress={() => router.push("/home")}
-        />
+      <SafeAreaView
+        edges={["bottom", "left", "right"]}
+        style={{ backgroundColor: "#fff" }}
+      >
+        <View
+          style={[
+            styles.navbar,
+            { paddingBottom: Math.max(10, insets.bottom) },
+          ]}
+        >
+          <NavItem
+            label="Home"
+            icon={require("../assets/icons/home.png")}
+            active={activeTab === "Home"}
+            onPress={() => router.push("/home")}
+          />
 
-        <NavItem
-          label="Packages"
-          icon={require("../assets/icons/packages.png")}
-          active={activeTab === "Packages"}
-          onPress={() => router.push("/basic-package")}
-        />
+          <NavItem
+            label="Packages"
+            icon={require("../assets/icons/packages.png")}
+            active={activeTab === "Packages"}
+            onPress={() => router.push("/basic-package")}
+          />
 
-        <View style={{ width: 60 }} />
+          <View style={{ width: 60 }} />
 
-        <NavItem
-          label="Contact"
-          icon={require("../assets/icons/contact.png")}
-          active={activeTab === "Contact"}
-          onPress={() => router.push("/contact")}
-        />
+          <NavItem
+            label="Contact"
+            icon={require("../assets/icons/contact.png")}
+            active={activeTab === "Contact"}
+            onPress={() => router.push("/contact")}
+          />
 
-        <NavItem
-          label="Message"
-          icon={require("../assets/icons/message.png")}
-          active={activeTab === "Message"}
-          onPress={() => router.push("/chatbot")}
-        />
-      </View>
+          <NavItem
+            label="Message"
+            icon={require("../assets/icons/message.png")}
+            active={activeTab === "Message"}
+            onPress={() => router.push("/chatbot")}
+          />
+        </View>
+      </SafeAreaView>
     </>
   );
 }
@@ -184,8 +205,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     width,
     height,
-    top: 10,
-    left: 10,
+    top: 0,
+    left: 0,
     zIndex: 999,
   },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 
@@ -52,42 +53,52 @@ export default function TopBar({
   }, [showLocation]);
 
   return (
-    <View style={styles.topBar}>
-      {showMenu ? (
-        <TouchableOpacity onPress={onMenuPress || (() => alert("Menu opened"))}>
+    <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+      <View style={styles.topBar}>
+        {showMenu ? (
+          <TouchableOpacity
+            onPress={onMenuPress || (() => alert("Menu opened"))}
+          >
+            <Image
+              source={require("../assets/icons/menu.png")}
+              style={styles.topIcon}
+            />
+          </TouchableOpacity>
+        ) : showBack ? (
+          <TouchableOpacity onPress={onBackPress || (() => router.back())}>
+            <Image
+              source={require("../assets/icons/back.png")}
+              style={styles.topIcon}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 26 }} />
+        )}
+
+        {showLocation ? (
+          <Text style={styles.locationText}>📍 {locationText}</Text>
+        ) : (
+          <Text style={styles.titleText}>{title}</Text>
+        )}
+
+        <TouchableOpacity
+          onPress={onBellPress || (() => alert("Notifications"))}
+        >
           <Image
-            source={require("../assets/icons/menu.png")}
+            source={require("../assets/icons/bell.png")}
             style={styles.topIcon}
           />
         </TouchableOpacity>
-      ) : showBack ? (
-        <TouchableOpacity onPress={onBackPress || (() => router.back())}>
-          <Image
-            source={require("../assets/icons/back.png")}
-            style={styles.topIcon}
-          />
-        </TouchableOpacity>
-      ) : (
-        <View style={{ width: 26 }} />
-      )}
-
-      {showLocation ? (
-        <Text style={styles.locationText}>📍 {locationText}</Text>
-      ) : (
-        <Text style={styles.titleText}>{title}</Text>
-      )}
-
-      <TouchableOpacity onPress={onBellPress || (() => alert("Notifications"))}>
-        <Image
-          source={require("../assets/icons/bell.png")}
-          style={styles.topIcon}
-        />
-      </TouchableOpacity>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: "#fff",
+  },
+
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
