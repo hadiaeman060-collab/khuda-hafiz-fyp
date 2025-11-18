@@ -11,7 +11,7 @@ app.use(cors());
 
 // ✅ Correctly read API key from .env
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-
+const PORT = process.env.PORT || 3000;
 app.post("/chat", async (req, res) => {
   try {
     const messages = req.body.messages;
@@ -21,7 +21,7 @@ app.post("/chat", async (req, res) => {
       .join("\n");
 
     const response = await axios.post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
       { contents: [{ parts: [{ text: userPrompt }] }] },
       { headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY } }
     );
@@ -37,6 +37,9 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log("Server running on port", process.env.PORT);
+// app.listen(process.env.PORT, () => {
+//   console.log("Server running on port", process.env.PORT);
+// });
+app.listen(PORT, '0.0.0.0', () => {
+  console.log("Server running on port " + PORT);
 });

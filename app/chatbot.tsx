@@ -38,7 +38,7 @@ export default function Chatbot() {
     try {
       // 🔹 Send message to your backend
       const response = await axios.post(
-        "http://192.168.1.5:3000/chat", // ← Your backend IP
+        "http://10.120.172.62:3000/chat", // ← Your backend IP
         { messages: updatedMessages }
       );
 
