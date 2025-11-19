@@ -144,6 +144,47 @@ app.get('/profile', verifyAuth, async (req, res) => {
   }
 });
 
+// Logout: revoke refresh tokens for the currently authenticated user
+app.post('/logout', verifyAuth, async (req, res) => {
+  try {
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase Admin not initialized' });
+    const uid = req.user.uid;
+    // Revoke all refresh tokens for the user; forces re-login
+    await admin.auth().revokeRefreshTokens(uid);
+    res.json({ ok: true, message: 'Logout successful; refresh tokens revoked' });
+  } catch (err) {
+    console.error('Logout failed:', err);
+    res.status(500).json({ error: 'Logout failed', detail: err.message || err });
+  }
+});
+
+// Debug: list registered routes (helps verify that /logout is actually registered)
+app.get('/__routes', (req, res) => {
+  try {
+    const routes = [];
+    if (app && app._router && app._router.stack) {
+      app._router.stack.forEach((middleware) => {
+        if (middleware.route) {
+          // routes registered directly on the app
+          const methods = Object.keys(middleware.route.methods).map((m) => m.toUpperCase());
+          routes.push({ path: middleware.route.path, methods });
+        } else if (middleware.name === 'router' && middleware.handle && middleware.handle.stack) {
+          // router middleware
+          middleware.handle.stack.forEach((handler) => {
+            if (handler.route) {
+              const methods = Object.keys(handler.route.methods).map((m) => m.toUpperCase());
+              routes.push({ path: handler.route.path, methods });
+            }
+          });
+        }
+      });
+    }
+    res.json({ routes });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not list routes', detail: e.message || e });
+  }
+});
+
 // --- Existing Gemini /chat route preserved ---
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 app.post('/chat', async (req, res) => {

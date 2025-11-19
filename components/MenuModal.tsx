@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
+import { useAuth } from "../app/context/AuthContext";
 import { MaterialIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons";
 
 type Props = {
@@ -49,6 +50,7 @@ const MenuItem = ({
 
 export default function MenuModal({ visible, onClose }: Props) {
   const router = useRouter();
+  const auth = useAuth();
   const { width: windowWidth } = useWindowDimensions();
   const menuWidth = Math.min(320, Math.floor(windowWidth * 0.85));
 
@@ -227,9 +229,17 @@ export default function MenuModal({ visible, onClose }: Props) {
             icon={<Ionicons name="log-out-outline" size={20} color="#d9534f" />}
             label="Log Out"
             labelStyle={{ color: "#d9534f" }}
-            onPress={() => {
+            onPress={async () => {
+              // close the menu first
               handleCloseFromOverlay();
-              console.log("Logged out");
+              try {
+                await auth.signOut();
+              } catch (e) {
+                console.warn("Logout from menu failed", e);
+              } finally {
+                // ensure user is redirected to login screen
+                router.replace("/login");
+              }
             }}
           />
         </ScrollView>

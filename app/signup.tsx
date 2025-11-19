@@ -7,12 +7,58 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  Platform,
 } from "react-native";
 import Checkbox from "expo-checkbox";
-import { Stack, Link, router } from "expo-router";
+import { Stack, Link, useRouter } from "expo-router";
+import axios from "axios";
+import { useAuth } from "./context/AuthContext";
 
 export default function SignupScreen() {
+  const router = useRouter();
   const [isChecked, setChecked] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auth = useAuth();
+
+  // Use your dev machine IP for physical devices. Update if needed.
+  const BACKEND_URL = "http://192.168.18.23:3000";
+
+  async function handleSignup() {
+    setError(null);
+    if (!name || !email || !phone || !password)
+      return setError("All fields required");
+    if (password !== confirm) return setError("Passwords do not match");
+    setLoading(true);
+    try {
+      const resp = await axios.post(`${BACKEND_URL}/signup`, {
+        email,
+        password,
+        displayName: name,
+        extra: { phone },
+      });
+
+      const tokenObj = resp.data?.token;
+      const profile = resp.data?.profile;
+      await auth.signIn(tokenObj, profile);
+      router.replace("/home");
+    } catch (err: any) {
+      console.error("Signup failed", err?.response?.data || err.message || err);
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        err.message ||
+        "Signup failed";
+      setError(typeof message === "string" ? message : JSON.stringify(message));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <>
@@ -38,13 +84,21 @@ export default function SignupScreen() {
         {/* Form */}
         <View style={styles.form}>
           <Text style={styles.label}>Name</Text>
-          <TextInput style={styles.input} placeholder="Enter your name" />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your name"
+            value={name}
+            onChangeText={setName}
+          />
 
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter your email"
             keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
           />
 
           <Text style={styles.label}>Phone Number</Text>
@@ -52,35 +106,62 @@ export default function SignupScreen() {
             style={styles.input}
             placeholder="Enter your phone number"
             keyboardType="phone-pad"
+            value={phone}
+            onChangeText={setPhone}
           />
 
           <Text style={styles.label}>Password</Text>
-          <TextInput style={styles.input} secureTextEntry placeholder="Enter password" />
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            placeholder="Enter password"
+            value={password}
+            onChangeText={setPassword}
+          />
 
           <Text style={styles.label}>Confirm Password</Text>
-          <TextInput style={styles.input} secureTextEntry placeholder="Re-enter password" />
+          <TextInput
+            style={styles.input}
+            secureTextEntry
+            placeholder="Re-enter password"
+            value={confirm}
+            onChangeText={setConfirm}
+          />
 
           {/* Checkbox */}
           <View style={styles.checkboxContainer}>
-            <Checkbox value={isChecked} onValueChange={setChecked} color="#2b0e05" />
+            <Checkbox
+              value={isChecked}
+              onValueChange={setChecked}
+              color="#2b0e05"
+            />
             <Text style={styles.checkboxText}>
               I agree to the Terms & Conditions
             </Text>
           </View>
 
           {/* Sign Up Button */}
+          {error ? (
+            <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
+          ) : null}
           <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push("/home")}
-        >
-          <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
+            style={[styles.button, loading ? { opacity: 0.7 } : null]}
+            onPress={handleSignup}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Creating account..." : "Sign Up"}
+            </Text>
+          </TouchableOpacity>
           {/* OR */}
           <Text style={styles.orText}>OR</Text>
 
           {/* Google Button */}
           <TouchableOpacity style={styles.googleButton}>
-            <Image source={require("../assets/google.png")} style={styles.googleLogo} />
+            <Image
+              source={require("../assets/google.png")}
+              style={styles.googleLogo}
+            />
             <Text style={styles.googleText}>Continue with Google</Text>
           </TouchableOpacity>
 
