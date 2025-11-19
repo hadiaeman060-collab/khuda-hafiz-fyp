@@ -7,6 +7,7 @@ import {
   TextInput,
   Pressable,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("+92034***9247");
   const [email, setEmail] = useState("fatima@gmail.com");
   const [password, setPassword] = useState("********");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -96,6 +98,7 @@ export default function ProfilePage() {
               <Text style={styles.outlineButtonText}>Delete Profile</Text>
             </Pressable>
           </View>
+          {/* Logout moved to the app menu modal; removed from profile page */}
         </View>
       </ScrollView>
     </SafeAreaView>
