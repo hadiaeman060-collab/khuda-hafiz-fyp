@@ -6,13 +6,52 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
+  Platform,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import axios from "axios";
+import { useAuth } from "./context/AuthContext";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const auth = useAuth();
+
+  // Backend URL selection:
+  // For a physical device on the same Wi-Fi, set the backend to your machine IP.
+  // Replace this with the IPv4 address from `ipconfig` (e.g. 192.168.18.23).
+  // If you later test on an Android emulator, change to 'http://10.0.2.2:3000'.
+  const BACKEND_URL = "http://192.168.18.23:3000";
+
+  async function handleLogin() {
+    setError(null);
+    if (!email || !password) return setError("Email and password required");
+    setLoading(true);
+    try {
+      const resp = await axios.post(`${BACKEND_URL}/login`, {
+        email,
+        password,
+      });
+      const tokenObj = resp.data?.token;
+      const profile = resp.data?.profile;
+      // use auth context to persist tokens and update state
+      await auth.signIn(tokenObj, profile);
+      router.replace("/home");
+    } catch (err: any) {
+      console.error("Login failed", err?.response?.data || err.message || err);
+      const message =
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        err.message ||
+        "Login failed";
+      setError(typeof message === "string" ? message : JSON.stringify(message));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <>
@@ -53,19 +92,23 @@ export default function LoginScreen() {
           />
 
           {/* Forgot Password */}
-          <TouchableOpacity
-            onPress={() => router.push("/forgot-password")}
-          >
+          <TouchableOpacity onPress={() => router.push("/forgot-password")}>
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
 
           {/* Login button */}
+          {error ? (
+            <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
+          ) : null}
           <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push("/home")}
-        >
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
+            style={[styles.button, loading ? { opacity: 0.7 } : null]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Logging in..." : "Login"}
+            </Text>
+          </TouchableOpacity>
 
           {/* OR */}
           <View style={styles.orContainer}>
