@@ -1,6 +1,4 @@
-require('dotenv').config({ path: './.env' }); // make sure path points to .env
-console.log("GEMINI_KEY:", process.env.GEMINI_API_KEY);
-console.log("PORT:", process.env.PORT);
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
@@ -9,34 +7,43 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Correctly read API key from .env
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
+// -------------------------
+// WORKING CHAT ENDPOINT
+// -------------------------
 app.post("/chat", async (req, res) => {
   try {
     const messages = req.body.messages;
 
-    const userPrompt = messages
-      .map((m) => `${m.sender === "user" ? "User" : "Bot"}: ${m.text}`)
-      .join("\n");
+    // Prepare prompt for Gemini
+    const userPrompt = messages.map(m => `${m.role}: ${m.content}`).join("\n");
 
     const response = await axios.post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-      { contents: [{ parts: [{ text: userPrompt }] }] },
-      { headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY } }
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=" + GEMINI_KEY,
+      {
+        contents: [
+          {
+            parts: [{ text: userPrompt }]
+          }
+        ]
+      }
     );
 
-    const botReply =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Sorry, I couldn't get a reply.";
+    const reply =
+      response.data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from Gemini";
 
-    res.json({ reply: botReply });
+    res.json({ reply });
+
   } catch (err) {
-    console.log(err.response?.data || err);
-    res.status(500).json({ error: "Gemini API error" });
+    console.error("🔥 Backend Error:", err.response?.data || err);
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log("Server running on port", process.env.PORT);
+// -------------------------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
 });
