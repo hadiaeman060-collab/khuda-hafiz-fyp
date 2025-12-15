@@ -13,6 +13,7 @@ import Checkbox from "expo-checkbox";
 import { Stack, Link, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
+import { API_URL } from "./utils/config";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -26,8 +27,8 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
 
-  // Use your dev machine IP for physical devices. Update if needed.
-  const BACKEND_URL = "http://192.168.18.23:3000";
+  // Backend URL comes from `app/utils/config.ts` which reads `.env` during development
+  const BACKEND_URL = API_URL;
 
   async function handleSignup() {
     setError(null);

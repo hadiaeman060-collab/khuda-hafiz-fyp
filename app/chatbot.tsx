@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import TopBar from "../components/TopBar";
+import { API_URL } from "./utils/config";
 
 type Message = {
   sender: "user" | "bot";
@@ -37,10 +38,7 @@ export default function Chatbot() {
 
     try {
       // 🔹 Send message to your backend
-      const response = await axios.post(
-        "http://10.120.172.62:3000/chat", // ← Your backend IP
-        { messages: updatedMessages }
-      );
+      const response = await axios.post(`${API_URL}/chat`, { messages: updatedMessages });
 
       const botReply: string = response.data.reply;
 

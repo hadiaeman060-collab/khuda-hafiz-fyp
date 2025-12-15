@@ -11,6 +11,7 @@ import {
 import { Stack, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
+import { API_URL } from "./utils/config";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -24,13 +25,14 @@ export default function LoginScreen() {
   // For a physical device on the same Wi-Fi, set the backend to your machine IP.
   // Replace this with the IPv4 address from `ipconfig` (e.g. 192.168.18.23).
   // If you later test on an Android emulator, change to 'http://10.0.2.2:3000'.
-  const BACKEND_URL = "http://192.168.18.23:3000";
+  const BACKEND_URL = API_URL;
 
   async function handleLogin() {
     setError(null);
     if (!email || !password) return setError("Email and password required");
     setLoading(true);
     try {
+      console.log('Login: BACKEND_URL =', BACKEND_URL);
       const resp = await axios.post(`${BACKEND_URL}/login`, {
         email,
         password,
@@ -41,7 +43,13 @@ export default function LoginScreen() {
       await auth.signIn(tokenObj, profile);
       router.replace("/home");
     } catch (err: any) {
-      console.error("Login failed", err?.response?.data || err.message || err);
+      // Detailed logging to help diagnose network errors
+      console.error('Login failed', {
+        message: err?.message,
+        code: err?.code,
+        request: err?.request,
+        response: err?.response?.data || err?.response,
+      });
       const message =
         err?.response?.data?.error ||
         err?.response?.data?.detail ||
