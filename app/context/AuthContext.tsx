@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { API_URL } from "../utils/config";
 import {
   getToken,
   saveToken,
@@ -7,7 +8,7 @@ import {
   logout as backendLogout,
 } from "../utils/auth";
 
-const BACKEND_URL = "http://192.168.18.23:3000"; // update for your dev machine
+const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 
 type User = { uid?: string; email?: string; displayName?: string } | null;
 

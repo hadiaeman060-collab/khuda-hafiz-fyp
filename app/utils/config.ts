@@ -1,0 +1,16 @@
+// Centralized config for app runtime values.
+// Try multiple sources: process.env (when Metro started with env),
+// Expo `Constants` (when using app.config.js / extra), then fallback.
+import Constants from 'expo-constants';
+
+function stripQuotes(v?: string | null): string | undefined {
+  if (!v && v !== '') return undefined;
+  return v!.replace(/^\s*"|"\s*$|^\s*'|'\s*$/g, '');
+}
+
+const fromProcess = stripQuotes((process as any)?.env?.API_URL) || stripQuotes((process as any)?.env?.REACT_APP_API_URL);
+const fromExpo = stripQuotes((Constants?.expoConfig?.extra as any)?.API_URL) || stripQuotes((Constants?.manifest?.extra as any)?.API_URL);
+
+export const API_URL: string = fromProcess || fromExpo || 'http://localhost:3000';
+
+export default { API_URL };
