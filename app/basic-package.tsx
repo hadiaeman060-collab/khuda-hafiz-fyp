@@ -19,7 +19,7 @@ export default function BasicPackageScreen() {
 
       <View style={styles.container}>
         {/* ✅ Top Component */}
-        <TopBar title="Packages" />
+        <TopBar showBack title="Packages" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Tabs */}

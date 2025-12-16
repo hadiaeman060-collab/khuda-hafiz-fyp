@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
+import { API_URL } from './config';
 
-const BACKEND_URL = 'http://192.168.18.23:3000'; // adjust to your dev machine IP
+const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 
 // Safe storage wrappers: prefer SecureStore, fall back to localStorage (web)
 const hasSecureStore = !!(SecureStore && (SecureStore as any).setItemAsync);
