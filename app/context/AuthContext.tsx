@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Use the centralized logout helper which attempts server revoke then clears storage
       try {
         await backendLogout();
-      } catch (e) {
+      } catch (e: any) {
         console.warn(
           "Server logout failed",
           e?.response?.data || e.message || e

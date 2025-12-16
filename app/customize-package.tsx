@@ -46,7 +46,7 @@ export default function CustomizePackageScreen() {
 
       <View style={styles.container}>
         {/* ✅ Global TopBar */}
-        <TopBar />
+        <TopBar showBack onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Tabs */}

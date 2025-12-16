@@ -23,9 +23,9 @@ export default function ContactScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Top Bar */}
           <TopBar
-            showBack={false}
-            onBellPress={() => alert("No new notifications")}
-            onBackPress={() => alert("Open menu")}
+            showBack
+            onBellPress={() => router.push("/notifications" as any)}
+            onBackPress={() => router.back()}
           />
 
           {/* Title */}
