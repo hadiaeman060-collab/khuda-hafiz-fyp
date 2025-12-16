@@ -1,14 +1,9 @@
-require('dotenv').config({ path: './.env' }); // make sure path points to .env
+require('dotenv').config({ path: './.env' }); // load environment variables
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
-
-// Environment variables used by this backend:
-// - FIREBASE_API_KEY  => Firebase Web API key (used for REST sign-in)
-// - FIREBASE_SERVICE_ACCOUNT (optional) => JSON string of service account credentials
-// - PORT => port to listen on
 
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -24,7 +19,7 @@ try {
   }
 
   if (!serviceAccount) {
-    console.warn('No Firebase service account found at ./serviceAccountKey.json and FIREBASE_SERVICE_ACCOUNT env not set. Firebase Admin will not be initialized. Signup/login endpoints will fail.');
+    console.warn('No Firebase service account found. Signup/login endpoints will fail.');
   } else {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
@@ -39,9 +34,70 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Correctly read API key from .env
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
+// ✅ Signup endpoint
+app.post("/signup", async (req, res) => {
+  try {
+    const { email, password, displayName, extra } = req.body;
 
+    if (!email || !password || !displayName) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Create user in Firebase
+    const userRecord = await admin.auth().createUser({
+      email,
+      password,
+      displayName,
+    });
+
+    // Create a custom token for frontend login
+    const token = await admin.auth().createCustomToken(userRecord.uid);
+
+    res.json({
+      token: { idToken: token },
+      profile: { uid: userRecord.uid, email, displayName, ...extra },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ✅ Login endpoint
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    // Firebase REST API sign-in
+    const firebaseResp = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+      { email, password, returnSecureToken: true }
+    );
+
+    const profile = {
+      uid: firebaseResp.data.localId,
+      email: firebaseResp.data.email,
+      displayName: firebaseResp.data.displayName || email,
+    };
+
+    res.json({
+      token: { idToken: firebaseResp.data.idToken },
+      profile,
+    });
+  } catch (err) {
+    console.error("Login error:", err.response?.data || err.message || err);
+    res.status(400).json({
+      error: err.response?.data?.error?.message || "Login failed. Check credentials",
+    });
+  }
+});
+
+// Existing chat endpoint
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 app.post("/chat", async (req, res) => {
   try {
     const messages = req.body.messages;
@@ -67,6 +123,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log("Server running on port", process.env.PORT);
+// Start server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running on port", PORT);
 });

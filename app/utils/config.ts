@@ -1,0 +1,34 @@
+// // Centralized config for app runtime values.
+// // Try multiple sources: process.env (when Metro started with env),
+// // Expo Constants (when using app.config.js / extra), then fallback.
+// import Constants from 'expo-constants';
+
+// function stripQuotes(v?: string | null): string | undefined {
+//   if (!v && v !== '') return undefined;
+//   return v!.replace(/^\s*"|"\s*$|^\s*'|'\s*$/g, '');
+// }
+
+// // Updated to read EXPO_PUBLIC_API_URL
+// const fromProcess =
+//   stripQuotes((process as any)?.env?.EXPO_PUBLIC_API_URL) || 
+//   stripQuotes((process as any)?.env?.API_URL) ||
+//   stripQuotes((process as any)?.env?.REACT_APP_API_URL);
+
+// const fromExpo =
+//   stripQuotes((Constants?.expoConfig?.extra as any)?.EXPO_PUBLIC_API_URL) ||
+//   stripQuotes((Constants?.expoConfig?.extra as any)?.API_URL) ||
+//   stripQuotes((Constants?.manifest?.extra as any)?.EXPO_PUBLIC_API_URL) ||
+//   stripQuotes((Constants?.manifest?.extra as any)?.API_URL);
+
+// export const API_URL: string = fromProcess || fromExpo || 'http://localhost:3000';
+
+// export default { API_URL };
+import { Platform } from "react-native";
+import Constants from "expo-constants";
+
+const fromExpo =
+  (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_API_URL;
+
+export const API_URL: string =
+  fromExpo ||
+  (Platform.OS === "web" ? "http://localhost:3000" : "http://192.168.100.129:3000");
