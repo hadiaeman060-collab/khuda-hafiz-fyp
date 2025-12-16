@@ -20,7 +20,7 @@ export default function ShroudsScreen() {
 
       <View style={styles.container}>
         {/* Top Bar */}
-        <TopBar title="Shroud (Kaffan)" onBackPress={() => router.back()} />
+        <TopBar showBack title="Shroud (Kaffan)" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Shroud Image */}

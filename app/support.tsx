@@ -20,7 +20,7 @@ export default function EmotionalSupportScreen() {
 
       <View style={styles.container}>
         {/* Top Bar */}
-        <TopBar title="Emotional Support" onBackPress={() => router.back()} />
+        <TopBar showBack title="Emotional Support" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Support Image */}

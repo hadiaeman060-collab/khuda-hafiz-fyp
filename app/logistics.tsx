@@ -22,7 +22,7 @@ export default function LogisticScreen() {
 
       <View style={styles.container}>
         {/* Top Bar */}
-        <TopBar title="Logistics & Booking" onBackPress={() => router.back()} />
+        <TopBar showBack title="Logistics & Booking" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Logistic Image */}

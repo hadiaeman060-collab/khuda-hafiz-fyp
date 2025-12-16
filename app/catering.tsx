@@ -22,7 +22,7 @@ export default function CateringScreen() {
 
       <View style={styles.container}>
         {/* Top Bar */}
-        <TopBar title="Catering" onBackPress={() => router.back()} />
+        <TopBar showBack title="Catering" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Catering Image */}
