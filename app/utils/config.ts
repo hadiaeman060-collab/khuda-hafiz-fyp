@@ -27,8 +27,18 @@ import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 const fromExpo =
-  (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_API_URL;
+  (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_API_URL ||
+  (process?.env as any)?.EXPO_PUBLIC_API_URL;
 
-export const API_URL: string =
-  fromExpo ||
-  (Platform.OS === "web" ? "http://localhost:3000" : "http://192.168.100.129:3000");
+// On web, prefer localhost for development unless EXPO_PUBLIC_API_URL explicitly points to localhost.
+function expoUrlIsLocal(url?: string) {
+  if (!url) return false;
+  return /localhost|127\.0\.0\.1/.test(url);
+}
+
+export const API_URL: string = ((): string => {
+  if (Platform.OS === "web") {
+    return expoUrlIsLocal(fromExpo) ? fromExpo! : "http://localhost:3000";
+  }
+  return fromExpo || "http://192.168.100.129:3000";
+})();

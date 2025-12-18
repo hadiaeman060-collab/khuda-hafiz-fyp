@@ -35,6 +35,9 @@ export default function SignupScreen() {
     setError(null);
     if (!name || !email || !phone || !password)
       return setError("All fields required");
+    // Basic email format validation
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) return setError("Please enter a valid email");
     if (password !== confirm) return setError("Passwords do not match");
     setLoading(true);
     try {

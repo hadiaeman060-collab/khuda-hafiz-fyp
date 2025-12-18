@@ -12,7 +12,7 @@ function AuthGuard() {
     if (loading) return;
     const first = segments[0] || "";
     // only allow access to these public pages when not authenticated
-    const publicPages = ["login", "signup", ""]; // root, login, signup
+    const publicPages = ["login", "signup", "forgot-password", ""]; // root, login, signup, forgot-password
 
     if (!isAuthenticated && !publicPages.includes(first)) {
       // user not authenticated and trying to access protected page -> send to login
