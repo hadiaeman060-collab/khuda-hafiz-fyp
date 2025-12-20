@@ -34,6 +34,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// In-memory store for pending signup OTPs: { email -> { code, expiresAt } }
+// NOTE: For production use a persistent store (Redis/DB) and rate-limiting.
+const pendingOtps = new Map();
+
+// In-memory store for pending login OTPs: { email -> { code, expiresAt, password } }
+const pendingLoginOtps = new Map();
+
 // Optional email transporter (nodemailer) - configured via env
 let transporter = null;
 try {
@@ -50,7 +57,10 @@ try {
       secure: SMTP_SECURE || false,
       auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
-    console.log('SMTP transporter configured');
+    // Verify SMTP connection at startup so problems surface in logs early
+    transporter.verify()
+      .then(() => console.log('SMTP transporter configured and verified'))
+      .catch((err) => console.warn('SMTP transporter verification failed:', err));
   }
 } catch (e) {
   console.warn('nodemailer not available or SMTP not configured');
@@ -59,45 +69,137 @@ try {
 // ✅ Signup endpoint
 app.post("/signup", async (req, res) => {
   try {
-    const { email, password, displayName, extra } = req.body;
+    const { email, password, displayName, extra, otp } = req.body;
 
-    if (!email || !password || !displayName) {
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!email) return res.status(400).json({ error: "email required" });
+
+    // If no OTP provided, generate and send one to the user's email.
+    if (!otp) {
+      if (!transporter) return res.status(500).json({ error: 'SMTP not configured on server' });
+
+      // Rate-limit: prevent spamming OTPs (simple approach)
+      const prev = pendingOtps.get(email);
+      if (prev && prev.expiresAt && prev.expiresAt - Date.now() > (9 * 60 * 1000)) {
+        // If a recent OTP was issued within the last minute, don't reissue.
+        return res.status(429).json({ error: 'OTP recently sent. Please check your email.' });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      pendingOtps.set(email, { code, expiresAt });
+
+      try {
+        const from = process.env.EMAIL_FROM || `no-reply@${process.env.SMTP_HOST || 'localhost'}`;
+        await transporter.verify();
+        const info = await transporter.sendMail({
+          from,
+          to: email,
+          subject: 'Your Khuda Hafiz signup OTP',
+          text: `Your verification code is ${code}. It will expire in 10 minutes.`,
+          html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
+        });
+        console.log('Signup OTP sent via SMTP', info.messageId || info);
+        return res.json({ ok: true, message: 'OTP sent to email' });
+      } catch (mailErr) {
+        console.error('Failed to send signup OTP via SMTP:', mailErr);
+        return res.status(500).json({ error: 'Failed to send OTP email', detail: mailErr.message || String(mailErr) });
+      }
     }
 
-    // Create user in Firebase
-    const userRecord = await admin.auth().createUser({
-      email,
-      password,
-      displayName,
-    });
+    // OTP provided -> verify and create account
+    const record = pendingOtps.get(email);
+    if (!record) return res.status(400).json({ error: 'No OTP requested for this email' });
+    if (record.expiresAt < Date.now()) {
+      pendingOtps.delete(email);
+      return res.status(400).json({ error: 'OTP expired' });
+    }
+    if (record.code !== String(otp)) return res.status(400).json({ error: 'Invalid OTP' });
 
-    // Create a custom token for frontend login
+    // Ensure required fields for account creation
+    if (!password || !displayName) return res.status(400).json({ error: 'password and displayName required to complete signup' });
+
+    // Create user in Firebase
+    const userRecord = await admin.auth().createUser({ email, password, displayName });
     const token = await admin.auth().createCustomToken(userRecord.uid);
 
-    res.json({
-      token: { idToken: token },
-      profile: { uid: userRecord.uid, email, displayName, ...extra },
-    });
+    // cleanup
+    pendingOtps.delete(email);
+
+    res.json({ token: { idToken: token }, profile: { uid: userRecord.uid, email, displayName, ...extra } });
   } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: err.message });
+    console.error('Signup error:', err.response?.data || err.message || err);
+    res.status(400).json({ error: err.response?.data || err.message || String(err) });
   }
 });
 
-// ✅ Login endpoint
+// ✅ Login endpoint with OTP verification
 app.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, otp } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
+    if (!email) return res.status(400).json({ error: "Email required" });
+
+    // If no OTP provided, validate credentials and send OTP
+    if (!otp) {
+      if (!password) return res.status(400).json({ error: "Password required" });
+
+      // Validate credentials with Firebase first
+      try {
+        const firebaseResp = await axios.post(
+          `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+          { email, password, returnSecureToken: true }
+        );
+        // Credentials valid, now send OTP
+      } catch (err) {
+        console.error("Credential validation failed:", err.response?.data || err.message);
+        return res.status(400).json({
+          error: err.response?.data?.error?.message || "Invalid email or password",
+        });
+      }
+
+      if (!transporter) return res.status(500).json({ error: 'SMTP not configured on server' });
+
+      // Rate-limit: prevent spamming OTPs
+      const prev = pendingLoginOtps.get(email);
+      if (prev && prev.expiresAt && prev.expiresAt - Date.now() > (9 * 60 * 1000)) {
+        return res.status(429).json({ error: 'OTP recently sent. Please check your email.' });
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      pendingLoginOtps.set(email, { code, expiresAt, password });
+
+      try {
+        const from = process.env.EMAIL_FROM || `no-reply@${process.env.SMTP_HOST || 'localhost'}`;
+        await transporter.verify();
+        const info = await transporter.sendMail({
+          from,
+          to: email,
+          subject: 'Your Khuda Hafiz login OTP',
+          text: `Your verification code is ${code}. It will expire in 10 minutes.`,
+          html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
+        });
+        console.log('Login OTP sent via SMTP', info.messageId || info);
+        return res.json({ ok: true, message: 'OTP sent to email' });
+      } catch (mailErr) {
+        console.error('Failed to send login OTP via SMTP:', mailErr);
+        return res.status(500).json({ error: 'Failed to send OTP email', detail: mailErr.message || String(mailErr) });
+      }
     }
 
-    // Firebase REST API sign-in
+    // OTP provided -> verify and complete login
+    const record = pendingLoginOtps.get(email);
+    if (!record) return res.status(400).json({ error: 'No OTP requested for this email' });
+    if (record.expiresAt < Date.now()) {
+      pendingLoginOtps.delete(email);
+      return res.status(400).json({ error: 'OTP expired' });
+    }
+    if (record.code !== String(otp)) return res.status(400).json({ error: 'Invalid OTP' });
+
+    // OTP verified, now authenticate with Firebase
     const firebaseResp = await axios.post(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
-      { email, password, returnSecureToken: true }
+      { email, password: record.password, returnSecureToken: true }
     );
 
     const profile = {
@@ -105,6 +207,9 @@ app.post("/login", async (req, res) => {
       email: firebaseResp.data.email,
       displayName: firebaseResp.data.displayName || email,
     };
+
+    // cleanup
+    pendingLoginOtps.delete(email);
 
     res.json({
       token: { idToken: firebaseResp.data.idToken },
@@ -132,6 +237,8 @@ app.post('/reset-password', async (req, res) => {
         // If SMTP configured, send the link by email from server-side
         if (transporter) {
           try {
+            // re-verify before sending to catch transient issues
+            await transporter.verify();
             const from = process.env.EMAIL_FROM || `no-reply@${process.env.SMTP_HOST || 'localhost'}`;
             const info = await transporter.sendMail({
               from,
@@ -143,13 +250,13 @@ app.post('/reset-password', async (req, res) => {
             console.log('Password reset email sent via SMTP', info.messageId || info);
             return res.json({ ok: true, message: 'Password reset email sent' });
           } catch (mailErr) {
-            console.warn('Failed to send reset email via SMTP:', mailErr);
-            // fall through to returning link for debugging
+            console.error('Failed to send reset email via SMTP:', mailErr);
+            return res.status(500).json({ error: 'Failed to send reset email', detail: mailErr.message || String(mailErr) });
           }
         }
 
-        // If SMTP not configured or sending failed, return the link (useful for development)
-        return res.json({ ok: true, message: 'Password reset link generated', link });
+        // If SMTP is not configured, return an explicit error so frontend doesn't receive the link
+        return res.status(500).json({ error: 'SMTP not configured on server. Password reset email could not be sent.' });
       } catch (e) {
         console.warn('Admin generatePasswordResetLink failed:', e.message || e);
       }

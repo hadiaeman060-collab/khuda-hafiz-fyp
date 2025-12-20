@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 
@@ -66,10 +67,7 @@ export default function TopBar({
           </TouchableOpacity>
         ) : showBack ? (
           <TouchableOpacity onPress={onBackPress || (() => router.back())}>
-            <Image
-              source={require("../assets/icons/back.png")}
-              style={styles.topIcon}
-            />
+            <Ionicons name="chevron-back" size={26} color="#5a3d2b" />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 26 }} />
@@ -82,9 +80,7 @@ export default function TopBar({
         )}
 
         <TouchableOpacity
-          onPress={
-            onBellPress || (() => router.push("/notifications" as any))
-          }
+          onPress={onBellPress || (() => router.push("/notifications" as any))}
         >
           <Image
             source={require("../assets/icons/bell.png")}

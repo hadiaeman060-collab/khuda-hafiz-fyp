@@ -11,6 +11,7 @@ import { Stack, useRouter, Link } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import { API_URL } from "./utils/config";
+import { saveToken } from "./utils/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -39,16 +40,25 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       console.log("Login: BACKEND_URL =", BACKEND_URL);
+      // Step 1: Request OTP after validating credentials
       const resp = await axios.post(`${BACKEND_URL}/login`, {
         email,
         password,
       });
 
-      const tokenObj = resp.data?.token;
-      const profile = resp.data?.profile;
+      if (!resp.data?.ok) {
+        return setError(resp.data?.error || "Failed to request OTP");
+      }
 
-      await auth.signIn(tokenObj, profile);
-      router.replace("/home");
+      // Step 2: Store pending login details securely
+      try {
+        await saveToken("pendingLogin", JSON.stringify({ email, password }));
+      } catch (e) {
+        console.warn("Failed to persist pending login details", e);
+      }
+
+      // Step 3: Navigate to verify screen
+      router.push({ pathname: "/verify-login", params: { email } });
     } catch (err: any) {
       console.error("Login failed", {
         message: err?.message,
