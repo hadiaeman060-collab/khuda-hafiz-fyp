@@ -10,7 +10,7 @@ import {
 import { Stack, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
-import { API_URL } from "./utils/config";
+import { API_URL } from "../utils/config";
 
 export default function LoginScreen() {
   const router = useRouter();

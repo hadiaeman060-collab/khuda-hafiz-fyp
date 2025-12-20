@@ -14,7 +14,7 @@ import { Stack, Link, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 // Updated import to use Expo public env variable
-import { API_URL } from "./utils/config";
+import { API_URL } from "../utils/config";
 
 export default function SignupScreen() {
   const router = useRouter();
