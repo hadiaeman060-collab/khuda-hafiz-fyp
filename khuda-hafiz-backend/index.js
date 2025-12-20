@@ -1,9 +1,19 @@
 require('dotenv').config({ path: './.env' }); // load environment variables
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
+const mongoose = require("mongoose");
+const Service = require("./models/Service");
+const Package = require("./models/Package");
+const Booking = require("./models/Booking");
+
+
 
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -96,6 +106,47 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// Get all services
+app.get("/services", async (req, res) => {
+  try {
+    const services = await Service.find({});
+    res.json(services);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Get all packages
+app.get("/packages", async (req, res) => {
+  try {
+    const packages = await Package.find({}).populate("serviceIds");
+    res.json(packages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// Book a package
+app.post("/bookings", async (req, res) => {
+  try {
+    const { userId, packageName, items, totalPrice } = req.body;
+
+    if (!userId || !packageName || !items || !totalPrice) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const booking = new Booking({
+      userId,
+      packageName,
+      items,
+      totalPrice,
+    });
+
+    await booking.save();
+    res.json({ message: "Booking successful", booking });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Existing chat endpoint
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 app.post("/chat", async (req, res) => {
@@ -124,6 +175,16 @@ app.post("/chat", async (req, res) => {
 });
 
 // Start server
+// ✅ MongoDB connection
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("MongoDB connected successfully");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+  });
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Server running on port", PORT);
 });
