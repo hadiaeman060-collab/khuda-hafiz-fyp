@@ -20,7 +20,7 @@ export default function GraveScreen() {
 
       <View style={styles.container}>
         {/* ✅ Top Bar */}
-        <TopBar title="Grave Services" />
+        <TopBar showBack title="Grave Services" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* ✅ Grave Image */}

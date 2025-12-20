@@ -22,7 +22,7 @@ export default function NgoScreen() {
 
       <View style={styles.container}>
         {/* Top Bar */}
-        <TopBar title="NGO Website Development" onBackPress={() => router.back()} />
+        <TopBar showBack title="NGO Website Development" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Service Image */}

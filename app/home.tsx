@@ -27,7 +27,7 @@ export default function HomeScreen() {
           showLocation
           showMenu
           onMenuPress={() => setMenuVisible(true)}
-          onBellPress={() => console.log("Bell pressed")}
+          onBellPress={() => router.push("/notifications" as any)}
         />
 
         <MenuModal

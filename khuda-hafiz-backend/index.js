@@ -1,9 +1,18 @@
-require('dotenv').config({ path: './.env' });
+require('dotenv').config({ path: './.env' }); // load environment variables
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
+const mongoose = require("mongoose");
+const Service = require("./models/Service");
+const Package = require("./models/Package");
+const Booking = require("./models/Booking");
+
 
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -74,10 +83,13 @@ app.post('/signup', async (req, res) => {
       console.warn('Could not sign in after signup:', err.message || err.toString());
     }
 
-    res.json({ uid: userRecord.uid, token: tokenResp });
+    res.json({
+      token: { idToken: token },
+      profile: { uid: userRecord.uid, email, displayName, ...extra },
+    });
   } catch (err) {
-    console.error(err.response?.data || err);
-    res.status(500).json({ error: 'Signup failed', detail: err.response?.data || err.message });
+    console.error(err);
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -99,13 +111,11 @@ app.post('/login', async (req, res) => {
       }
     }
 
-    res.json({ token: tokenResp, profile });
-  } catch (err) {
-    console.error(err.response?.data || err.toString());
-    const status = err.response?.status || 500;
-    res.status(status).json({ error: 'Login failed', detail: err.response?.data || err.message });
-  }
-});
+    // Firebase REST API sign-in
+    const firebaseResp = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+      { email, password, returnSecureToken: true }
+    );
 
 // --- Auth middleware ---
 async function verifyAuth(req, res, next) {
@@ -118,22 +128,20 @@ async function verifyAuth(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    console.error('Token verification failed:', err.message || err);
-    res.status(401).json({ error: 'Unauthorized', detail: err.message });
+    console.error("Login error:", err.response?.data || err.message || err);
+    res.status(400).json({
+      error: err.response?.data?.error?.message || "Login failed. Check credentials",
+    });
   }
-}
+});
 
 // --- Profile ---
 app.get('/profile', verifyAuth, async (req, res) => {
   try {
-    const uid = req.user.uid;
-    const db = admin.firestore();
-    const snap = await db.collection('users').doc(uid).get();
-    if (!snap.exists) return res.status(404).json({ error: 'Profile not found' });
-    res.json({ profile: snap.data() });
+    const services = await Service.find({});
+    res.json(services);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -145,13 +153,35 @@ app.post('/logout', verifyAuth, async (req, res) => {
     await admin.auth().revokeRefreshTokens(uid);
     res.json({ ok: true, message: 'Logout successful; refresh tokens revoked' });
   } catch (err) {
-    console.error('Logout failed:', err);
-    res.status(500).json({ error: 'Logout failed', detail: err.message || err });
+    res.status(500).json({ error: err.message });
+  }
+});
+// Book a package
+app.post("/bookings", async (req, res) => {
+  try {
+    const { userId, packageName, items, totalPrice } = req.body;
+
+    if (!userId || !packageName || !items || !totalPrice) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const booking = new Booking({
+      userId,
+      packageName,
+      items,
+      totalPrice,
+    });
+
+    await booking.save();
+    res.json({ message: "Booking successful", booking });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// --- Chatbot route using Hugging Face Router API ---
-app.post('/chat', async (req, res) => {
+// Existing chat endpoint
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+app.post("/chat", async (req, res) => {
   try {
     const messages = req.body.messages || [];
 
@@ -188,6 +218,17 @@ Assistant:
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('Server running on port ' + PORT);
+// Start server
+// ✅ MongoDB connection
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("MongoDB connected successfully");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+  });
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running on port", PORT);
 });
