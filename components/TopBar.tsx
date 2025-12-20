@@ -82,7 +82,9 @@ export default function TopBar({
         )}
 
         <TouchableOpacity
-          onPress={onBellPress || (() => alert("Notifications"))}
+          onPress={
+            onBellPress || (() => router.push("/notifications" as any))
+          }
         >
           <Image
             source={require("../assets/icons/bell.png")}

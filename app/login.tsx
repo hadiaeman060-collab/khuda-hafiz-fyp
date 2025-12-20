@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  Platform,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import axios from "axios";
@@ -26,7 +25,9 @@ export default function LoginScreen() {
 
   async function handleLogin() {
     setError(null);
-    if (!email || !password) return setError("Email and password required");
+    if (!email || !password) {
+      return setError("Email and password required");
+    }
     setLoading(true);
     try {
       console.log("Login: BACKEND_URL =", BACKEND_URL);
@@ -34,6 +35,7 @@ export default function LoginScreen() {
         email,
         password,
       });
+
       const tokenObj = resp.data?.token;
       const profile = resp.data?.profile;
       await auth.signIn(tokenObj, profile);
@@ -45,11 +47,14 @@ export default function LoginScreen() {
         request: err?.request,
         response: err?.response?.data || err?.response,
       });
+
+      // Friendly Firebase error messages
       const message =
-        err?.response?.data?.error ||
-        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.response?.data?.error?.message ||
         err.message ||
         "Login failed";
+
       setError(typeof message === "string" ? message : JSON.stringify(message));
     } finally {
       setLoading(false);
@@ -113,14 +118,14 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* OR */}
+          {/* OR Separator */}
           <View style={styles.orContainer}>
             <View style={styles.line} />
             <Text style={styles.orText}>OR</Text>
             <View style={styles.line} />
           </View>
 
-          {/* Google login */}
+          {/* Google Login */}
           <TouchableOpacity style={styles.googleButton}>
             <Image
               source={require("../assets/google.png")}
@@ -129,7 +134,7 @@ export default function LoginScreen() {
             <Text style={styles.googleText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          {/* Sign up link */}
+          {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <Text>Don’t have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/signup")}>
@@ -145,10 +150,7 @@ export default function LoginScreen() {
 const CIRCLE_SIZE = 100;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
   header: {
     backgroundColor: "#3c1a06",
     alignItems: "center",
@@ -166,24 +168,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  logo: {
-    width: "70%",
-    height: "70%",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  form: {
-    padding: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 6,
-    color: "#000",
-  },
+  logo: { width: "70%", height: "70%" },
+  title: { fontSize: 22, fontWeight: "bold", color: "#fff" },
+  form: { padding: 20 },
+  label: { fontSize: 14, fontWeight: "500", marginBottom: 6, color: "#000" },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -204,25 +192,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  orContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#ddd",
-  },
-  orText: {
-    marginHorizontal: 10,
-    color: "#777",
-  },
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  orContainer: { flexDirection: "row", alignItems: "center", marginVertical: 20 },
+  line: { flex: 1, height: 1, backgroundColor: "#ddd" },
+  orText: { marginHorizontal: 10, color: "#777" },
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -232,21 +205,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     justifyContent: "center",
   },
-  googleLogo: {
-    width: 20,
-    height: 20,
-    marginRight: 10,
-  },
-  googleText: {
-    fontSize: 15,
-  },
-  signupContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 20,
-  },
-  signupText: {
-    color: "#3c1a06",
-    fontWeight: "bold",
-  },
+  googleLogo: { width: 20, height: 20, marginRight: 10 },
+  googleText: { fontSize: 15 },
+  signupContainer: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
+  signupText: { color: "#3c1a06", fontWeight: "bold" },
 });

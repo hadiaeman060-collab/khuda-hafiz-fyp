@@ -20,6 +20,7 @@ type Message = {
 };
 
 export default function Chatbot() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: "bot",
