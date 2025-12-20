@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import TopBar from "../components/TopBar";
-import { API_URL } from "./utils/config"; // Make sure this points to your backend URL
+import { API_URL } from "../utils/config"; // Make sure this points to your backend URL
 
 type Message = {
   sender: "user" | "bot";

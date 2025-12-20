@@ -3,8 +3,7 @@ import axios from "axios";
 const BASE_URL = "http://192.168.100.129:3000"; // replace with your backend IP or localhost
 
 export type Service = {
-  _id?: string | number;
-  id?: string | number;
+  _id: string;
   name: string;
   price: number;
   desc?: string;
@@ -26,7 +25,10 @@ export type BookingResponse = {
 export const getServices = async (): Promise<Service[]> => {
   try {
     const res = await axios.get(`${BASE_URL}/services`);
-    return res.data;
+    return res.data.map((item: any) => ({
+      ...item,
+      _id: String(item._id),
+    }));
   } catch (err) {
     console.error("Error fetching services:", err);
     return [];
