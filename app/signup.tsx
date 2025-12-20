@@ -63,7 +63,7 @@ export default function SignupScreen() {
           })
         );
       } catch (e) {
-        console.warn("Failed to persist pending signup details", e);
+        console.warn("Failed to  persist pending signup details", e);
       }
 
       // Navigate to verify email screen with only the email in params
