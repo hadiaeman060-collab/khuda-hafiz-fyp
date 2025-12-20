@@ -21,10 +21,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
 
-  // Backend URL selection:
-  // For a physical device on the same Wi-Fi, set the backend to your machine IP.
-  // Replace this with the IPv4 address from `ipconfig` (e.g. 192.168.18.23).
-  // If you later test on an Android emulator, change to 'http://10.0.2.2:3000'.
+  // Backend URL comes from centralized config
   const BACKEND_URL = API_URL;
 
   async function handleLogin() {
@@ -32,19 +29,17 @@ export default function LoginScreen() {
     if (!email || !password) return setError("Email and password required");
     setLoading(true);
     try {
-      console.log('Login: BACKEND_URL =', BACKEND_URL);
+      console.log("Login: BACKEND_URL =", BACKEND_URL);
       const resp = await axios.post(`${BACKEND_URL}/login`, {
         email,
         password,
       });
       const tokenObj = resp.data?.token;
       const profile = resp.data?.profile;
-      // use auth context to persist tokens and update state
       await auth.signIn(tokenObj, profile);
       router.replace("/home");
     } catch (err: any) {
-      // Detailed logging to help diagnose network errors
-      console.error('Login failed', {
+      console.error("Login failed", {
         message: err?.message,
         code: err?.code,
         request: err?.request,
@@ -63,7 +58,6 @@ export default function LoginScreen() {
 
   return (
     <>
-      {/* Hide header */}
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
@@ -104,10 +98,11 @@ export default function LoginScreen() {
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
 
-          {/* Login button */}
           {error ? (
             <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
           ) : null}
+
+          {/* Login button */}
           <TouchableOpacity
             style={[styles.button, loading ? { opacity: 0.7 } : null]}
             onPress={handleLogin}

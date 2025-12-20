@@ -13,6 +13,7 @@ import Checkbox from "expo-checkbox";
 import { Stack, Link, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
+// Updated import to use Expo public env variable
 import { API_URL } from "./utils/config";
 
 export default function SignupScreen() {
@@ -27,7 +28,7 @@ export default function SignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
 
-  // Backend URL comes from `app/utils/config.ts` which reads `.env` during development
+  // Backend URL now correctly reads EXPO_PUBLIC_API_URL
   const BACKEND_URL = API_URL;
 
   async function handleSignup() {
@@ -37,6 +38,8 @@ export default function SignupScreen() {
     if (password !== confirm) return setError("Passwords do not match");
     setLoading(true);
     try {
+      console.log("Using backend URL:", BACKEND_URL); // Debug line
+
       const resp = await axios.post(`${BACKEND_URL}/signup`, {
         email,
         password,
@@ -179,7 +182,7 @@ export default function SignupScreen() {
   );
 }
 
-// Increased circle size
+// Styles (unchanged)
 const CIRCLE_SIZE = 100;
 
 const styles = StyleSheet.create({
