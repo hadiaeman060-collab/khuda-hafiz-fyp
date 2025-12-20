@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   Pressable,
+  Modal,
 } from "react-native";
 import {
   SafeAreaView,
@@ -18,6 +19,9 @@ import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
+
+// 🔴 REAL EMERGENCY NUMBER (can be team member for now)
+const EMERGENCY_NUMBER = "tel:+923057834162";
 
 type NavItemProps = {
   label: string;
@@ -32,7 +36,9 @@ const NavItem = ({ label, icon, active, onPress }: NavItemProps) => (
       source={icon}
       style={[styles.navIcon, active && styles.activeIcon]}
     />
-    <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
+    <Text style={[styles.navLabel, active && styles.activeLabel]}>
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -40,10 +46,12 @@ export default function BottomNavBar({ activeTab = "Home" }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  // ✅ Animations
+  // Animations
   const scale = useRef(new Animated.Value(1)).current;
   const positionY = useRef(new Animated.Value(0)).current;
+
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const animatePress = () => {
     const targetScale = isExpanded ? 1 : 3.2;
@@ -64,26 +72,28 @@ export default function BottomNavBar({ activeTab = "Home" }) {
       }),
     ]).start();
 
-    // ✅ Call automatically only when expanding
     if (!isExpanded) {
-      setTimeout(() => {
-        Linking.openURL("tel:0800786786");
-      }, 300);
+      setTimeout(() => setShowConfirm(true), 300);
     }
 
     setIsExpanded(!isExpanded);
   };
 
+  const handleCall = () => {
+    setShowConfirm(false);
+    Linking.openURL(EMERGENCY_NUMBER);
+  };
+
   return (
     <>
-      {/* ✅ Blur Background */}
+      {/* Blur Background */}
       {isExpanded && (
         <Pressable style={styles.blurOverlay} onPress={animatePress}>
           <BlurView intensity={40} style={{ flex: 1 }} />
         </Pressable>
       )}
 
-      {/* ✅ Floating Animated Call Button */}
+      {/* Floating Call Button */}
       <Animated.View
         style={[
           styles.floatingCallButton,
@@ -101,7 +111,37 @@ export default function BottomNavBar({ activeTab = "Home" }) {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* ✅ Bottom Navbar */}
+      {/* ✅ Confirmation Modal */}
+      <Modal transparent visible={showConfirm} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <TouchableOpacity
+              style={styles.closeIcon}
+              onPress={() => setShowConfirm(false)}
+            >
+              <Text style={{ fontSize: 18 }}>✕</Text>
+            </TouchableOpacity>
+
+            <Image
+              source={require("../assets/icons/call.png")}
+              style={styles.modalIcon}
+            />
+
+            <Text style={styles.modalTitle}>
+              Emergency Call
+            </Text>
+            <Text style={styles.modalText}>
+              Do you want to call Khuda Hafiz emergency service?
+            </Text>
+
+            <TouchableOpacity style={styles.confirmButton} onPress={handleCall}>
+              <Text style={styles.confirmText}>Call Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bottom Navbar */}
       <SafeAreaView
         edges={["bottom", "left", "right"]}
         style={{ backgroundColor: "#fff" }}
@@ -136,10 +176,10 @@ export default function BottomNavBar({ activeTab = "Home" }) {
           />
 
           <NavItem
-            label="Message"
+            label="Feedback"
             icon={require("../assets/icons/message.png")}
-            active={activeTab === "Message"}
-            onPress={() => router.push("/chatbot")}
+            active={activeTab === "Feedback"}
+            onPress={() => router.push("/feedback")}
           />
         </View>
       </SafeAreaView>
@@ -176,7 +216,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ✅ Floating Call Button (Original Placement)
   floatingCallButton: {
     position: "absolute",
     bottom: 35,
@@ -200,7 +239,6 @@ const styles = StyleSheet.create({
     tintColor: "#fff",
   },
 
-  // ✅ Blur Overlay
   blurOverlay: {
     position: "absolute",
     width,
@@ -208,5 +246,52 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: 999,
+  },
+
+  /* 🔔 Modal Styles */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBox: {
+    width: 260,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+  },
+  closeIcon: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+  },
+  modalIcon: {
+    width: 40,
+    height: 40,
+    tintColor: "#5a3d2b",
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  modalText: {
+    fontSize: 13,
+    color: "#555",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  confirmButton: {
+    backgroundColor: "#5a3d2b",
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+  },
+  confirmText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });
