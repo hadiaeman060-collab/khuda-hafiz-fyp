@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
 
+  // Backend URL comes from centralized config
   const BACKEND_URL = API_URL;
 
   async function handleLogin() {
@@ -37,7 +38,6 @@ export default function LoginScreen() {
 
       const tokenObj = resp.data?.token;
       const profile = resp.data?.profile;
-
       await auth.signIn(tokenObj, profile);
       router.replace("/home");
     } catch (err: any) {
@@ -107,7 +107,7 @@ export default function LoginScreen() {
             <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
           ) : null}
 
-          {/* Login Button */}
+          {/* Login button */}
           <TouchableOpacity
             style={[styles.button, loading ? { opacity: 0.7 } : null]}
             onPress={handleLogin}
