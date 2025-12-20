@@ -14,11 +14,11 @@ const Package = require("./models/Package");
 const Booking = require("./models/Booking");
 
 
-
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
+const HF_API_KEY = process.env.HF_API_KEY; // Hugging Face Router API Key
 
-// Initialize Firebase Admin SDK
+// --- Firebase Admin SDK initialization ---
 try {
   let serviceAccount;
   const saPath = './serviceAccountKey.json';
@@ -29,7 +29,7 @@ try {
   }
 
   if (!serviceAccount) {
-    console.warn('No Firebase service account found. Signup/login endpoints will fail.');
+    console.warn('No Firebase service account found. Firebase Admin will not be initialized.');
   } else {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
@@ -40,28 +40,48 @@ try {
   console.error('Failed to initialize Firebase Admin:', err);
 }
 
+// --- Express setup ---
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ✅ Signup endpoint
-app.post("/signup", async (req, res) => {
+// --- Firebase REST sign-in helper ---
+async function signInWithEmailPassword(email, password) {
+  if (!FIREBASE_API_KEY) throw new Error('FIREBASE_API_KEY not set in env');
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
+  const resp = await axios.post(url, { email, password, returnSecureToken: true });
+  return resp.data;
+}
+
+// --- Health check ---
+app.get('/ping', (req, res) => {
+  res.json({ ok: true, timestamp: Date.now() });
+});
+
+// --- Signup ---
+app.post('/signup', async (req, res) => {
   try {
-    const { email, password, displayName, extra } = req.body;
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase Admin not initialized' });
+    const { email, password, displayName, extra = {} } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-    if (!email || !password || !displayName) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+    const userRecord = await admin.auth().createUser({ email, password, displayName });
 
-    // Create user in Firebase
-    const userRecord = await admin.auth().createUser({
-      email,
-      password,
-      displayName,
+    const db = admin.firestore();
+    await db.collection('users').doc(userRecord.uid).set({
+      uid: userRecord.uid,
+      email: userRecord.email,
+      displayName: userRecord.displayName || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      ...extra,
     });
 
-    // Create a custom token for frontend login
-    const token = await admin.auth().createCustomToken(userRecord.uid);
+    let tokenResp = null;
+    try {
+      tokenResp = await signInWithEmailPassword(email, password);
+    } catch (err) {
+      console.warn('Could not sign in after signup:', err.message || err.toString());
+    }
 
     res.json({
       token: { idToken: token },
@@ -73,13 +93,22 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// ✅ Login endpoint
-app.post("/login", async (req, res) => {
+// --- Login ---
+app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    const tokenResp = await signInWithEmailPassword(email, password);
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
+    let profile = null;
+    if (admin.apps.length) {
+      try {
+        const db = admin.firestore();
+        const snap = await db.collection('users').doc(tokenResp.localId).get();
+        if (snap.exists) profile = snap.data();
+      } catch (e) {
+        console.warn('Failed to fetch user profile:', e.message || e);
+      }
     }
 
     // Firebase REST API sign-in
@@ -88,16 +117,16 @@ app.post("/login", async (req, res) => {
       { email, password, returnSecureToken: true }
     );
 
-    const profile = {
-      uid: firebaseResp.data.localId,
-      email: firebaseResp.data.email,
-      displayName: firebaseResp.data.displayName || email,
-    };
-
-    res.json({
-      token: { idToken: firebaseResp.data.idToken },
-      profile,
-    });
+// --- Auth middleware ---
+async function verifyAuth(req, res, next) {
+  try {
+    const auth = req.headers.authorization || '';
+    if (!auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Missing Bearer token' });
+    const idToken = auth.split(' ')[1];
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase Admin not initialized' });
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    req.user = decoded;
+    next();
   } catch (err) {
     console.error("Login error:", err.response?.data || err.message || err);
     res.status(400).json({
@@ -106,8 +135,8 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Get all services
-app.get("/services", async (req, res) => {
+// --- Profile ---
+app.get('/profile', verifyAuth, async (req, res) => {
   try {
     const services = await Service.find({});
     res.json(services);
@@ -115,11 +144,14 @@ app.get("/services", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Get all packages
-app.get("/packages", async (req, res) => {
+
+// --- Logout ---
+app.post('/logout', verifyAuth, async (req, res) => {
   try {
-    const packages = await Package.find({}).populate("serviceIds");
-    res.json(packages);
+    if (!admin.apps.length) return res.status(500).json({ error: 'Firebase Admin not initialized' });
+    const uid = req.user.uid;
+    await admin.auth().revokeRefreshTokens(uid);
+    res.json({ ok: true, message: 'Logout successful; refresh tokens revoked' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -151,26 +183,38 @@ app.post("/bookings", async (req, res) => {
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 app.post("/chat", async (req, res) => {
   try {
-    const messages = req.body.messages;
+    const messages = req.body.messages || [];
 
-    const userPrompt = messages
-      .map((m) => `${m.sender === "user" ? "User" : "Bot"}: ${m.text}`)
-      .join("\n");
+    const prompt = `
+You are an AI assistant for a funeral services app named "Khuda Hafiz".
+Your tone must be respectful, calm, compassionate, and emotionally supportive.
+Do not joke. Do not be casual. Be culturally sensitive.
+
+Conversation:
+${messages.map(m => `${m.sender}: ${m.text}`).join('\n')}
+
+Assistant:
+`;
 
     const response = await axios.post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-      { contents: [{ parts: [{ text: userPrompt }] }] },
-      { headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY } }
+      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
+      { inputs: prompt },
+      {
+        headers: {
+          Authorization: `Bearer ${HF_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
     );
 
-    const botReply =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Sorry, I couldn't get a reply.";
+    const reply = response.data?.generated_text?.trim() || "I am here to help you. Please try again.";
 
-    res.json({ reply: botReply });
+    res.json({ reply });
   } catch (err) {
-    console.log(err.response?.data || err);
-    res.status(500).json({ error: "Gemini API error" });
+    console.error('❌ Chatbot error:', err.response?.data || err.message || err);
+    res.status(500).json({
+      reply: "I'm here for you, but I'm unable to respond right now. Please try again shortly.",
+    });
   }
 });
 
