@@ -11,8 +11,8 @@ import {
 import { Stack, useLocalSearchParams, useRouter, Link } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
-import { API_URL } from "./utils/config";
-import AuthUtils from "./utils/auth";
+import { API_URL } from "../utils/config";
+import AuthUtils from "../utils/auth";
 
 export default function VerifyLoginScreen() {
   const router = useRouter();
