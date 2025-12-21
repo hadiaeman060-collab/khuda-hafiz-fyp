@@ -10,9 +10,11 @@ import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
 import { getServices, bookPackage, Service } from "../utils/servicesAPI";
+import { useAuth } from "./context/AuthContext";
 
 export default function CustomizePackageScreen() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const [services, setServices] = useState<Service[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -46,16 +48,19 @@ export default function CustomizePackageScreen() {
     }));
 
   // 🔹 Total price
-  const total = selectedItems.reduce(
-    (sum, item) => sum + item.price,
-    0
-  );
+  const total = selectedItems.reduce((sum, item) => sum + item.price, 0);
 
   // 🔹 Book package
   const handleBook = async () => {
+    if (!user?.uid) {
+      alert("Please log in to book a package");
+      router.push("/login");
+      return;
+    }
+
     try {
       const bookingData = {
-        userId: "TEMP_USER_ID", // replace later with Firebase UID
+        userId: user.uid,
         packageName: "Custom Package",
         items: selectedItems,
         totalPrice: total,
@@ -135,9 +140,7 @@ export default function CustomizePackageScreen() {
           {/* Total */}
           <View style={styles.totalCard}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalPrice}>
-              Rs {total.toLocaleString()}
-            </Text>
+            <Text style={styles.totalPrice}>Rs {total.toLocaleString()}</Text>
           </View>
 
           {/* Book Button */}
