@@ -4,6 +4,10 @@ const axios = require('axios');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
+const mongoose = require("mongoose");
+const Service = require("./models/Service");
+const Booking = require("./models/Booking");
+const package = require("./models/Package");
 
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -149,6 +153,79 @@ app.post('/logout', verifyAuth, async (req, res) => {
     res.status(500).json({ error: 'Logout failed', detail: err.message || err });
   }
 });
+// ✅ MongoDB connection
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("MongoDB connected successfully");
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+  });
+
+  // --- Book a package ---
+app.post("/bookings", async (req, res) => {
+  try {
+    const { userId, packageName, items, totalPrice } = req.body;
+
+    if (!userId || !packageName || !items || !totalPrice) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const booking = new Booking({
+      userId,
+      packageName,
+      items,
+      totalPrice,
+    });
+
+    await booking.save();
+
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error("Error creating booking:", err);
+    res.status(500).json({ error: "Failed to create booking" });
+  }
+});
+  // --- Services (for Customize Package) ---
+app.get("/services", async (req, res) => {
+  try {
+    const services = await Service.find();
+    res.json(services);
+  } catch (err) {
+    console.error("Failed to fetch services:", err);
+    res.status(500).json({ error: "Failed to fetch services" });
+  }
+});
+
+app.get("/packages", async (req, res) => {
+  try {
+    const allServices = await Service.find();
+
+    const basicServices = allServices.filter(s => 
+      ["Flowers", "Kafan", "Catering"].includes(s.name)
+    );
+
+    const standardServices = allServices.filter(s =>
+      ["Flowers", "Kafan", "Grave", "Catering"].includes(s.name)
+    );
+
+    const premiumServices = allServices; // all services
+
+    const packages = [
+      { type: "basic", items: basicServices },
+      { type: "standard", items: standardServices },
+      { type: "premium", items: premiumServices },
+    ];
+
+    res.json(packages);
+  } catch (err) {
+    console.error("Failed to fetch packages:", err);
+    res.status(500).json({ error: "Failed to fetch packages" });
+  }
+});
+
+
 
 // --- Chatbot route using Hugging Face Router API ---
 app.post('/chat', async (req, res) => {
