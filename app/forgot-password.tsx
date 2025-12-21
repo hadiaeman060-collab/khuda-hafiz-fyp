@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Stack } from "expo-router";
 import axios from "axios";
-import { API_URL } from "./utils/config";
+import { API_URL } from "../utils/config";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");

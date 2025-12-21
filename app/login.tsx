@@ -10,8 +10,8 @@ import {
 import { Stack, useRouter, Link } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
-import { API_URL } from "./utils/config";
-import { saveToken } from "./utils/auth";
+import { API_URL } from "../utils/config";
+import { saveToken } from "../utils/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,6 +21,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const auth = useAuth();
 
+  // Backend URL comes from centralized config
   const BACKEND_URL = API_URL;
 
   function handleForgotPassword() {
@@ -143,7 +144,7 @@ export default function LoginScreen() {
             <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
           ) : null}
 
-          {/* Login Button */}
+          {/* Login button */}
           <TouchableOpacity
             style={[styles.button, loading ? { opacity: 0.7 } : null]}
             onPress={handleLogin}

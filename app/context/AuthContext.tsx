@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
-import { API_URL } from "../utils/config";
+import { API_URL } from "../../utils/config";
 import {
   getToken,
   saveToken,
   clearTokens,
   logout as backendLogout,
-} from "../utils/auth";
+} from "../../utils/auth";
 
 const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 

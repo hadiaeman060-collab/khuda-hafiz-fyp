@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import axios from "axios";
 import TopBar from "../components/TopBar";
-import { Stack, useRouter } from "expo-router";
-import { API_URL } from "./utils/config";
+import { useRouter } from "expo-router";
+import { API_URL } from "../utils/config"; // Make sure this points to your backend URL
 
 type Message = {
   sender: "user" | "bot";
@@ -28,6 +30,12 @@ export default function Chatbot() {
   ]);
   const [inputText, setInputText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scroll to bottom whenever messages update
+  useEffect(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messages]);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -39,8 +47,9 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      // 🔹 Send message to your backend
-      const response = await axios.post(`${API_URL}/chat`, { messages: updatedMessages });
+      const response = await axios.post(`${API_URL}/chat`, {
+        messages: updatedMessages,
+      });
 
       const botReply: string = response.data.reply;
 
@@ -60,11 +69,16 @@ export default function Chatbot() {
   };
 
   return (
-    <View style={styles.container}>
-      <TopBar showBack onBackPress={() => router.back()} title="AI Chatbot" />
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+      <TopBar title="AI Chatbot" />
       <ScrollView
         style={styles.chatContainer}
         contentContainerStyle={{ paddingBottom: 80 }}
+        ref={scrollViewRef}
       >
         {messages.map((msg, index) => (
           <View
@@ -86,19 +100,29 @@ export default function Chatbot() {
           placeholder="Type your message..."
           value={inputText}
           onChangeText={setInputText}
+          editable={!loading}
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-          <Text style={styles.sendText}>Send</Text>
+        <TouchableOpacity
+          style={styles.sendBtn}
+          onPress={handleSend}
+          disabled={loading}
+        >
+          <Text style={styles.sendText}>{loading ? "..." : "Send"}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   chatContainer: { flex: 1, padding: 15 },
-  message: { marginVertical: 6, padding: 12, borderRadius: 10, maxWidth: "80%" },
+  message: {
+    marginVertical: 6,
+    padding: 12,
+    borderRadius: 10,
+    maxWidth: "80%",
+  },
   userMsg: { backgroundColor: "#DCF8C6", alignSelf: "flex-end" },
   botMsg: { backgroundColor: "#F0F0F0", alignSelf: "flex-start" },
   msgText: { fontSize: 16 },
@@ -110,7 +134,22 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     alignItems: "center",
   },
-  input: { flex: 1, height: 45, borderWidth: 1, borderColor: "#ccc", borderRadius: 25, paddingHorizontal: 15 },
-  sendBtn: { backgroundColor: "#e57e1eff", marginLeft: 8, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 25 },
+  input: {
+    flex: 1,
+    height: 45,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 25,
+    paddingHorizontal: 15,
+  },
+  sendBtn: {
+    backgroundColor: "#e57e1eff",
+    marginLeft: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   sendText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
