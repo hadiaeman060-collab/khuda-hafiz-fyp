@@ -1,4 +1,4 @@
-require('dotenv').config({ path: './.env' });
+require('dotenv').config({ path: './.env' }); // load environment variables
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -7,7 +7,13 @@ const fs = require('fs');
 const mongoose = require("mongoose");
 const Service = require("./models/Service");
 const Booking = require("./models/Booking");
-const package = require("./models/Package");
+const Package = require("./models/Package");
+
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
@@ -78,10 +84,13 @@ app.post('/signup', async (req, res) => {
       console.warn('Could not sign in after signup:', err.message || err.toString());
     }
 
-    res.json({ uid: userRecord.uid, token: tokenResp });
+    res.json({
+      token: { idToken: token },
+      profile: { uid: userRecord.uid, email, displayName, ...extra },
+    });
   } catch (err) {
-    console.error(err.response?.data || err);
-    res.status(500).json({ error: 'Signup failed', detail: err.response?.data || err.message });
+    console.error(err);
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -103,11 +112,18 @@ app.post('/login', async (req, res) => {
       }
     }
 
-    res.json({ token: tokenResp, profile });
+    // Firebase REST API sign-in
+    const firebaseResp = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
+      { email, password, returnSecureToken: true }
+    );
+
+    res.json({ token: firebaseResp.data, profile: { uid: firebaseResp.data.localId, email } });
   } catch (err) {
-    console.error(err.response?.data || err.toString());
-    const status = err.response?.status || 500;
-    res.status(status).json({ error: 'Login failed', detail: err.response?.data || err.message });
+    console.error("Login error:", err.response?.data || err.message || err);
+    res.status(400).json({
+      error: err.response?.data?.error?.message || "Login failed. Check credentials",
+    });
   }
 });
 
@@ -122,7 +138,7 @@ async function verifyAuth(req, res, next) {
     req.user = decoded;
     next();
   } catch (err) {
-    console.error('Token verification failed:', err.message || err);
+    console.error("Auth error:", err.message || err);
     res.status(401).json({ error: 'Unauthorized', detail: err.message });
   }
 }
