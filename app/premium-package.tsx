@@ -11,9 +11,11 @@ import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
 import { getPackages, bookPackage, Service } from "../utils/servicesAPI";
+import { useAuth } from "./context/AuthContext";
 
 export default function PremiumPackageScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [items, setItems] = useState<Service[]>([]);
 
   // Fetch Premium Package items from backend
@@ -31,8 +33,14 @@ export default function PremiumPackageScreen() {
   }, []);
 
   const handleBook = async () => {
+    if (!user?.uid) {
+      alert("Please log in to book a package");
+      router.push("/login");
+      return;
+    }
+
     const bookingData = {
-      userId: "USER_ID_HERE", // Replace with actual logged-in user ID
+      userId: user.uid,
       packageName: "Premium Package",
       items: items.map((item) => ({ name: item.name, price: item.price })),
       totalPrice: items.reduce((sum, item) => sum + item.price, 0),
@@ -61,7 +69,6 @@ export default function PremiumPackageScreen() {
         <TopBar showBack title="Packages" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
-
           {/* Tabs */}
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => router.push("/basic-package")}>
@@ -91,13 +98,16 @@ export default function PremiumPackageScreen() {
               <Text style={styles.packageDesc}>{item.desc}</Text>
             </View>
           ))}
- {/* Total Amount */}
-        <View style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total Amount</Text>
-          <Text style={styles.totalPrice}>
-            Rs {items.reduce((sum, item) => sum + item.price, 0).toLocaleString()}
-          </Text>
-        </View>
+          {/* Total Amount */}
+          <View style={styles.totalCard}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalPrice}>
+              Rs{" "}
+              {items
+                .reduce((sum, item) => sum + item.price, 0)
+                .toLocaleString()}
+            </Text>
+          </View>
           <TouchableOpacity style={styles.buyButton} onPress={handleBook}>
             <Text style={styles.buyButtonText}>Buy Now</Text>
           </TouchableOpacity>

@@ -10,7 +10,12 @@ import {
 
 const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 
-type User = { uid?: string; email?: string; displayName?: string } | null;
+type User = {
+  uid?: string;
+  email?: string;
+  displayName?: string;
+  phoneNumber?: string;
+} | null;
 
 type AuthContextType = {
   isAuthenticated: boolean;
