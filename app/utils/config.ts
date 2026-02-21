@@ -27,7 +27,7 @@ export const API_URL: string = ((): string => {
   if (Platform.OS === "web") {
     return expoUrlIsLocal(fromExpo) ? fromExpo! : "http://localhost:3000";
   }
-  return fromExpo || "http://192.168.100.129:3000";
+  return fromExpo || "http://10.120.133.52:3000";
 })();
 
 export default function UtilsConfigRoute() {
