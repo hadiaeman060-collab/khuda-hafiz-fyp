@@ -1,11 +1,13 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import axios from 'axios';
 import { API_URL } from './config';
 
 const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 
-// Safe storage wrappers: prefer SecureStore, fall back to localStorage (web)
-const hasSecureStore = !!(SecureStore && (SecureStore as any).setItemAsync);
+// Safe storage wrappers: prefer SecureStore on native, fall back to localStorage (web)
+const isWeb = Platform.OS === 'web' || (typeof window !== 'undefined' && typeof window.document !== 'undefined');
+const hasSecureStore = !isWeb && !!(SecureStore && typeof (SecureStore as any).getItemAsync === 'function');
 
 async function safeSet(key: string, value: string) {
   if (hasSecureStore) {

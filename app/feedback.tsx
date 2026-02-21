@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import axios from "axios";
 import BottomNavBar from "../components/BottomNavBar";
 
 export default function FeedbackScreen() {
@@ -18,12 +19,31 @@ export default function FeedbackScreen() {
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) {
       alert("Please select a star rating");
       return;
     }
-    setShowModal(true);
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/feedback", // Replace with your server IP
+        { rating, message }
+      );
+
+      if (response.data.success) {
+        setShowModal(true);
+        setRating(0);
+        setMessage("");
+      } else {
+        alert("Failed to submit feedback");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(
+        "Error submitting feedback. Make sure your backend is running and reachable."
+      );
+    }
   };
 
   return (
@@ -84,29 +104,28 @@ export default function FeedbackScreen() {
       </View>
 
       {/* ✅ Success Modal */}
-<Modal transparent visible={showModal} animationType="fade">
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalBox}>
-      {/* Close Button (Top Right) */}
-      <TouchableOpacity
-        style={styles.closeIcon}
-        onPress={() => setShowModal(false)}
-      >
-        <Text style={styles.closeText}>✕</Text>
-      </TouchableOpacity>
+      <Modal transparent visible={showModal} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeIcon}
+              onPress={() => setShowModal(false)}
+            >
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
 
-      {/* Check Icon */}
-      <View style={styles.checkCircle}>
-        <Text style={styles.checkMark}>✓</Text>
-      </View>
+            {/* Check Icon */}
+            <View style={styles.checkCircle}>
+              <Text style={styles.checkMark}>✓</Text>
+            </View>
 
-      <Text style={styles.modalText}>
-        Feedback submitted successfully
-      </Text>
-    </View>
-  </View>
-</Modal>
-
+            <Text style={styles.modalText}>
+              Feedback submitted successfully
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       {/* Bottom Navbar */}
       <BottomNavBar activeTab="Feedback" />
@@ -168,56 +187,55 @@ const styles = StyleSheet.create({
   },
 
   /* Modal */
-modalOverlay: {
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.45)",
-  justifyContent: "center",
-  alignItems: "center",
-},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-modalBox: {
-  width: 260,
-  height: 260,
-  backgroundColor: "#fff",
-  borderRadius: 20, // 🔥 rounded square
-  justifyContent: "center",
-  alignItems: "center",
-  padding: 20,
-},
+  modalBox: {
+    width: 260,
+    height: 260,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
 
-closeIcon: {
-  position: "absolute",
-  top: 14,
-  right: 14, // ✅ moved to top-right
-  zIndex: 10,
-},
+  closeIcon: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    zIndex: 10,
+  },
 
-closeText: {
-  fontSize: 20,
-  color: "#333",
-},
+  closeText: {
+    fontSize: 20,
+    color: "#333",
+  },
 
-checkCircle: {
-  width: 80,
-  height: 80,
-  borderRadius: 40,
-  backgroundColor: "#2ecc71",
-  justifyContent: "center",
-  alignItems: "center",
-  marginBottom: 20,
-},
+  checkCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#2ecc71",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
 
-checkMark: {
-  color: "#fff",
-  fontSize: 40,
-  fontWeight: "bold",
-},
+  checkMark: {
+    color: "#fff",
+    fontSize: 40,
+    fontWeight: "bold",
+  },
 
-modalText: {
-  fontSize: 16,
-  fontWeight: "600",
-  textAlign: "center",
-  color: "#333",
-},
-
+  modalText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#333",
+  },
 });

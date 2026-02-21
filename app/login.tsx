@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   Image,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, Link } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
-import { API_URL } from "./utils/config";
+import { API_URL } from "../utils/config";
+import { saveToken } from "../utils/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,6 +24,15 @@ export default function LoginScreen() {
   // Backend URL comes from centralized config
   const BACKEND_URL = API_URL;
 
+  function handleForgotPassword() {
+    console.log("Forgot password pressed");
+    try {
+      router.push("/forgot-password");
+    } catch (e) {
+      console.error("Navigation to forgot-password failed", e);
+    }
+  }
+
   async function handleLogin() {
     setError(null);
     if (!email || !password) {
@@ -31,15 +41,25 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       console.log("Login: BACKEND_URL =", BACKEND_URL);
+      // Step 1: Request OTP after validating credentials
       const resp = await axios.post(`${BACKEND_URL}/login`, {
         email,
         password,
       });
 
-      const tokenObj = resp.data?.token;
-      const profile = resp.data?.profile;
-      await auth.signIn(tokenObj, profile);
-      router.replace("/home");
+      if (!resp.data?.ok) {
+        return setError(resp.data?.error || "Failed to request OTP");
+      }
+
+      // Step 2: Store pending login details securely
+      try {
+        await saveToken("pendingLogin", JSON.stringify({ email, password }));
+      } catch (e) {
+        console.warn("Failed to persist pending login details", e);
+      }
+
+      // Step 3: Navigate to verify screen
+      router.push({ pathname: "/verify-login", params: { email } });
     } catch (err: any) {
       console.error("Login failed", {
         message: err?.message,
@@ -99,7 +119,24 @@ export default function LoginScreen() {
           />
 
           {/* Forgot Password */}
-          <TouchableOpacity onPress={() => router.push("/forgot-password")}>
+          <TouchableOpacity
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            onPress={async () => {
+              console.log("Forgot password pressed (programmatic)");
+              try {
+                await router.push("/forgot-password");
+                console.log("router.push succeeded");
+              } catch (e) {
+                console.warn("router.push failed, trying replace", e);
+                try {
+                  await router.replace("/forgot-password");
+                  console.log("router.replace succeeded");
+                } catch (e2) {
+                  console.error("router.replace also failed", e2);
+                }
+              }
+            }}
+          >
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
 
@@ -193,7 +230,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  orContainer: { flexDirection: "row", alignItems: "center", marginVertical: 20 },
+  orContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 20,
+  },
   line: { flex: 1, height: 1, backgroundColor: "#ddd" },
   orText: { marginHorizontal: 10, color: "#777" },
   googleButton: {
@@ -207,6 +248,10 @@ const styles = StyleSheet.create({
   },
   googleLogo: { width: 20, height: 20, marginRight: 10 },
   googleText: { fontSize: 15 },
-  signupContainer: { flexDirection: "row", justifyContent: "center", marginTop: 20 },
+  signupContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
+  },
   signupText: { color: "#3c1a06", fontWeight: "bold" },
 });
