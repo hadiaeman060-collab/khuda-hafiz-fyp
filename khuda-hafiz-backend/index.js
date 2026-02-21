@@ -1,13 +1,21 @@
 require('dotenv').config({ path: './.env' }); // load environment variables
+console.log("BACKEND MONGODB_URI =", process.env.MONGODB_URI);
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
 const mongoose = require("mongoose");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Service = require("./models/Service");
 const Booking = require("./models/Booking");
 const Package = require("./models/Package");
+const Graveyard = require("./models/Graveyard");
+const Feedback = require("./models/Feedback");
+const graveyardRoutes = require("./routes/graveyard.routes");
+const rateLimit = require("express-rate-limit");
+
+
 
 // Connect to MongoDB
 mongoose
@@ -45,7 +53,7 @@ try {
 const app = express();
 app.use(express.json());
 app.use(cors());
-
+app.use("/graveyards", graveyardRoutes);
 // In-memory store for pending signup OTPs: { email -> { code, expiresAt } }
 // NOTE: For production use a persistent store (Redis/DB) and rate-limiting.
 const pendingOtps = new Map();
@@ -234,6 +242,25 @@ app.post("/login", async (req, res) => {
     });
   }
 });
+// --- Submit feedback ---
+app.post("/feedback", async (req, res) => {
+  try {
+    const { rating, message } = req.body;
+
+    if (!rating) {
+      return res.status(400).json({ error: "Rating is required" });
+    }
+
+    const feedback = new Feedback({ rating, message });
+    await feedback.save();
+
+    res.status(201).json({ success: true, feedback });
+  } catch (err) {
+    console.error("Error saving feedback:", err);
+    res.status(500).json({ error: "Failed to save feedback" });
+  }
+});
+
 
 // Password reset: generate or send a password reset email
 app.post('/reset-password', async (req, res) => {
@@ -301,6 +328,72 @@ const verifyAuth = async (req, res, next) => {
     res.status(401).json({ error: 'Unauthorized', detail: err.message });
   }
 };
+
+// --- Search Graveyards Nearby ---
+app.get("/graveyards/search", async (req, res) => {
+  try {
+    const { lat, lng, radius } = req.query;
+
+    // 1) Validate existence
+    if (lat == null || lng == null) {
+      return res.status(400).json({ success: false, error: "lat and lng are required" });
+    }
+
+    // 2) Parse + validate numeric
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+      return res.status(400).json({ success: false, error: "lat and lng must be valid numbers" });
+    }
+
+    // 3) Validate ranges
+    if (latNum < -90 || latNum > 90) {
+      return res.status(400).json({ success: false, error: "lat must be between -90 and 90" });
+    }
+    if (lngNum < -180 || lngNum > 180) {
+      return res.status(400).json({ success: false, error: "lng must be between -180 and 180" });
+    }
+
+    // 4) Radius (meters) with sane defaults + cap
+    let searchRadius = radius == null || radius === "" ? 5000 : Number(radius);
+
+    if (!Number.isFinite(searchRadius) || searchRadius <= 0) {
+      return res.status(400).json({ success: false, error: "radius must be a positive number (meters)" });
+    }
+
+    // cap radius to avoid abuse (e.g., 50km max)
+    const MAX_RADIUS = 50000;
+    if (searchRadius > MAX_RADIUS) searchRadius = MAX_RADIUS;
+
+    // 5) Query (requires 2dsphere index on location)
+    const nearbyGraveyards = await Graveyard.find({
+      isActive: true,
+      location: {
+        $nearSphere: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lngNum, latNum], // [lng, lat]
+          },
+          $maxDistance: searchRadius,
+        },
+      },
+    })
+      .select("name address city location contactNumber") // keep payload small
+      .lean();
+
+    res.json({
+      success: true,
+      count: nearbyGraveyards.length,
+      radiusUsed: searchRadius,
+      graveyards: nearbyGraveyards,
+    });
+  } catch (err) {
+    console.error("Error fetching graveyards:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch graveyards" });
+  }
+});
+
 
 // Existing chat endpoint
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
@@ -403,46 +496,275 @@ app.get("/packages", async (req, res) => {
   }
 });
 
+// =========================
+// ✅ Gemini Chatbot Endpoint
+// =========================
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,             // 30 requests/minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+async function classifyIntent(genAI, userMessage) {
+  const model = genAI.getGenerativeModel({
+    model: process.env.GEMINI_CLASSIFIER_MODEL || process.env.GEMINI_MODEL || "gemini-flash-latest",
+    systemInstruction:
+      "You are an intent classifier for the Khuda Hafiz funeral booking app. " +
+      "Return ONLY valid JSON. No markdown. No extra text."
+  });
 
+  const prompt = `
+Classify the user's message into EXACTLY one intent and extract parameters.
 
-// --- Chatbot route using Hugging Face Router API ---
-app.post('/chat', async (req, res) => {
-  try {
-    const messages = req.body.messages || [];
+Allowed intents:
+- "get_services"
+- "get_packages"
+- "search_graveyards"
+- "book_package"
+- "general"
 
-    const prompt = `
-You are an AI assistant for a funeral services app named "Khuda Hafiz".
-Your tone must be respectful, calm, compassionate, and emotionally supportive.
-Do not joke. Do not be casual. Be culturally sensitive.
+Output JSON schema:
+{
+  "intent": "<one of the allowed intents>",
+  "params": { ... },
+  "missing": ["field1", "field2"],
+  "confidence": 0.0
+}
 
-Conversation:
-${messages.map(m => `${m.sender}: ${m.text}`).join('\n')}
+Parameter rules:
+- search_graveyards params: { "lat": number|null, "lng": number|null, "radius": number|null }
+  missing must include "lat" and/or "lng" if not present.
+- book_package params: { "packageType": "basic"|"standard"|"premium"|null, "city": string|null, "date": string|null, "time": string|null, "budget": number|null }
+  missing list what is required if not present: packageType, city, date, time.
+- get_services/get_packages: params can be empty.
 
-Assistant:
+User message: ${JSON.stringify(userMessage)}
 `;
 
-    const response = await axios.post(
-      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2',
-      { inputs: prompt },
-      {
-        headers: {
-          Authorization: `Bearer ${HF_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+  const result = await model.generateContent(prompt);
+  const raw = result?.response?.text?.() || "";
+
+  // Try strict JSON parse
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch {
+    // Fallback: attempt to salvage JSON between first { and last }
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        return JSON.parse(raw.slice(start, end + 1));
+      } catch {}
+    }
+    return { intent: "general", params: {}, missing: [], confidence: 0 };
+  }
+}
+// app.post("/api/chat", chatLimiter, async (req, res) => {
+//   try {
+//     const { message, history } = req.body;
+
+//     if (!message || typeof message !== "string") {
+//       return res.status(400).json({ error: "message is required (string)" });
+//     }
+
+//     if (!process.env.GEMINI_API_KEY) {
+//       return res.status(500).json({ error: "GEMINI_API_KEY missing in .env" });
+//     }
+
+//     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+//     // Use a fast model by default; you can change via .env
+//     const model = genAI.getGenerativeModel({
+//       model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+//       systemInstruction:
+//         process.env.GEMINI_SYSTEM_PROMPT ||
+//         "You are a helpful assistant inside the Khuda Hafiz app. Keep replies concise and friendly.",
+//     });
+
+//     // Optional: keep conversation memory
+//     // history format expected from frontend:
+//     // [{ role: "user"|"model", text: "..." }, ...]
+//     const safeHistory = Array.isArray(history)
+//       ? history
+//           .filter(
+//             (h) =>
+//               h &&
+//               (h.role === "user" || h.role === "model") &&
+//               typeof h.text === "string"
+//           )
+//           .map((h) => ({
+//             role: h.role,
+//             parts: [{ text: h.text }],
+//           }))
+//       : [];
+
+//     const chat = model.startChat({ history: safeHistory });
+
+//     const result = await chat.sendMessage(message);
+//     const reply = result?.response?.text?.() || "No reply from Gemini";
+
+//     return res.json({ reply });
+//   } catch (err) {
+//     console.error("Gemini chat error:", err);
+//     return res.status(500).json({
+//       error: "Chatbot error",
+//       details: String(err?.message || err),
+//     });
+//   }
+// });
+app.post("/api/chat", chatLimiter, async (req, res) => {
+  try {
+    const { message, history } = req.body;
+
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ error: "message is required (string)" });
+    }
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "GEMINI_API_KEY missing in .env" });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+    // 1) INTENT CLASSIFICATION (Option A)
+    const intentResult = await classifyIntent(genAI, message);
+    const intent = intentResult?.intent || "general";
+    const params = intentResult?.params || {};
+    const missing = Array.isArray(intentResult?.missing) ? intentResult.missing : [];
+
+    // 2) DISPATCH
+    if (intent === "get_services") {
+      const services = await Service.find().select("name price description").lean();
+      if (!services.length) return res.json({ reply: "No services are available right now." });
+
+      const lines = services.map((s) => `• ${s.name}${s.price ? ` — ${s.price}` : ""}${s.description ? ` (${s.description})` : ""}`);
+      return res.json({
+        reply:
+          "Here are the available services in Khuda Hafiz:\n" +
+          lines.join("\n") +
+          "\n\nIf you want, tell me your city and budget and I’ll suggest a suitable package."
+      });
+    }
+
+    if (intent === "get_packages") {
+      // You currently build packages from services; keep it consistent with your /packages logic
+      const allServices = await Service.find().lean();
+
+      const pick = (names) => allServices.filter((s) => names.includes(s.name));
+      const basic = pick(["Flowers", "Kafan", "Catering"]);
+      const standard = pick(["Flowers", "Kafan", "Grave", "Catering"]);
+      const premium = allServices;
+
+      const fmt = (arr) => (arr.length ? arr.map((x) => x.name).join(", ") : "No items configured");
+
+      return res.json({
+        reply:
+          `Here are the packages available in Khuda Hafiz:\n` +
+          `• Basic: ${fmt(basic)}\n` +
+          `• Standard: ${fmt(standard)}\n` +
+          `• Premium: ${fmt(premium)}\n\n` +
+          `Tell me your city + preferred date/time, and I can help you book.`
+      });
+    }
+
+    if (intent === "search_graveyards") {
+      // Require lat/lng; if missing, ask
+      const lat = typeof params.lat === "number" ? params.lat : null;
+      const lng = typeof params.lng === "number" ? params.lng : null;
+      const radius = typeof params.radius === "number" ? params.radius : 5000;
+
+      if (!lat || !lng) {
+        return res.json({
+          reply:
+            "To find nearby graveyards, I need your location (latitude & longitude). " +
+            "Please share your current location or allow location access in the app."
+        });
       }
-    );
 
-    const reply = response.data?.generated_text?.trim() || "I am here to help you. Please try again.";
+      const nearby = await Graveyard.find({
+        isActive: true,
+        location: {
+          $nearSphere: {
+            $geometry: { type: "Point", coordinates: [lng, lat] },
+            $maxDistance: radius
+          }
+        }
+      })
+        .select("name address city contactNumber")
+        .limit(10)
+        .lean();
 
-    res.json({ reply });
+      if (!nearby.length) {
+        return res.json({
+          reply: `I couldn't find any active graveyards within ${radius} meters. Try increasing the radius.`
+        });
+      }
+
+      const lines = nearby.map((g) => `• ${g.name}${g.city ? ` (${g.city})` : ""}\n  ${g.address || "Address not available"}${g.contactNumber ? ` | ${g.contactNumber}` : ""}`);
+      return res.json({
+        reply: `Here are nearby graveyards:\n${lines.join("\n")}\n\nIf you want, tell me which one you prefer and your preferred time.`
+      });
+    }
+
+    if (intent === "book_package") {
+      // Soft booking flow: collect required fields; do NOT confirm booking without user confirmation
+      const packageType = params.packageType || null;
+      const city = params.city || null;
+      const date = params.date || null;
+      const time = params.time || null;
+
+      const need = [];
+      if (!packageType) need.push("package type (basic / standard / premium)");
+      if (!city) need.push("city");
+      if (!date) need.push("date");
+      if (!time) need.push("time");
+
+      if (need.length) {
+        return res.json({
+          reply:
+            "I can help you book a funeral package. I just need:\n" +
+            need.map((x) => `• ${x}`).join("\n") +
+            "\n\nReply with these details and I’ll prepare the booking for confirmation."
+        });
+      }
+
+      return res.json({
+        reply:
+          `Understood. Here’s what I have:\n` +
+          `• Package: ${packageType}\n` +
+          `• City: ${city}\n` +
+          `• Date/Time: ${date} at ${time}\n\n` +
+          `Should I place the booking now? Reply "confirm" to proceed.`
+      });
+    }
+
+    // 3) GENERAL CHAT (fallback)
+    const model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-flash-latest",
+      systemInstruction:
+        process.env.GEMINI_SYSTEM_PROMPT ||
+        "You are the Khuda Hafiz Assistant for a digital funeral booking platform. Be respectful, concise, and do not invent prices or confirmations."
+    });
+
+    const safeHistory = Array.isArray(history)
+      ? history
+          .filter((h) => h && (h.role === "user" || h.role === "model") && typeof h.text === "string")
+          .map((h) => ({ role: h.role, parts: [{ text: h.text }] }))
+      : [];
+
+    const chat = model.startChat({ history: safeHistory });
+    const result = await chat.sendMessage(message);
+    const reply = result?.response?.text?.() || "No reply from assistant.";
+
+    return res.json({ reply });
   } catch (err) {
-    console.error('❌ Chatbot error:', err.response?.data || err.message || err);
-    res.status(500).json({
-      reply: "I'm here for you, but I'm unable to respond right now. Please try again shortly.",
+    console.error("Gemini chat error:", err);
+    return res.status(500).json({
+      error: "Chatbot error",
+      details: String(err?.message || err)
     });
   }
 });
-
 app.listen(PORT, '0.0.0.0', () => {
   console.log('Server running on port ' + PORT);
 });
