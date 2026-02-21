@@ -13,6 +13,7 @@ import BottomNavBar from "../components/BottomNavBar";
 import FloatingCallButton from "../components/FloatingAgentButton";
 import MenuModal from "../components/MenuModal";
 
+
 export default function HomeScreen() {
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);

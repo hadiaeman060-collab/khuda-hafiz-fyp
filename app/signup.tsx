@@ -14,7 +14,8 @@ import { Stack, Link, useRouter } from "expo-router";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 // Updated import to use Expo public env variable
-import { API_URL } from "./utils/config";
+import { API_URL } from "../utils/config";
+import { saveToken } from "../utils/auth";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -33,31 +34,50 @@ export default function SignupScreen() {
 
   async function handleSignup() {
     setError(null);
-    if (!name || !email || !phone || !password)
-      return setError("All fields required");
+    // Validate details before requesting OTP
+    if (!name || !email || !password || !confirm) {
+      return setError("Name, email, and password are required");
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) return setError("Please enter a valid email");
     if (password !== confirm) return setError("Passwords do not match");
+
     setLoading(true);
     try {
-      console.log("Using backend URL:", BACKEND_URL); // Debug line
+      // Step 1: Request OTP to be sent to the user's email
+      const resp = await axios.post(`${BACKEND_URL}/signup`, { email });
+      if (!resp.data?.ok) {
+        return setError(resp.data?.error || "Failed to request OTP");
+      }
 
-      const resp = await axios.post(`${BACKEND_URL}/signup`, {
-        email,
-        password,
-        displayName: name,
-        extra: { phone },
-      });
+      // Step 2: Persist pending signup details securely, then navigate to verify screen
+      try {
+        // Store pending details to retrieve on verify screen
+        await saveToken(
+          "pendingSignup",
+          JSON.stringify({
+            email,
+            displayName: name,
+            phone,
+            password,
+          })
+        );
+      } catch (e) {
+        console.warn("Failed to  persist pending signup details", e);
+      }
 
-      const tokenObj = resp.data?.token;
-      const profile = resp.data?.profile;
-      await auth.signIn(tokenObj, profile);
-      router.replace("/home");
+      // Navigate to verify email screen with only the email in params
+      router.push({ pathname: "/verify-email", params: { email } });
     } catch (err: any) {
-      console.error("Signup failed", err?.response?.data || err.message || err);
+      console.error(
+        "Request OTP failed",
+        err?.response?.data || err.message || err
+      );
       const message =
         err?.response?.data?.error ||
         err?.response?.data?.detail ||
         err.message ||
-        "Signup failed";
+        "Request OTP failed";
       setError(typeof message === "string" ? message : JSON.stringify(message));
     } finally {
       setLoading(false);
@@ -105,6 +125,8 @@ export default function SignupScreen() {
             autoCapitalize="none"
           />
 
+          {/* OTP moved to dedicated Verify Email screen */}
+
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
             style={styles.input}
@@ -144,7 +166,7 @@ export default function SignupScreen() {
             </Text>
           </View>
 
-          {/* Sign Up Button */}
+          {/* Sign Up / Request OTP Button */}
           {error ? (
             <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
           ) : null}
@@ -154,7 +176,7 @@ export default function SignupScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? "Creating account..." : "Sign Up"}
+              {loading ? "Requesting..." : "Sign Up"}
             </Text>
           </TouchableOpacity>
           {/* OR */}

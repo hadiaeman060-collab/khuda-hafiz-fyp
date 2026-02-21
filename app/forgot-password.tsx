@@ -8,9 +8,22 @@ import {
   Image,
 } from "react-native";
 import { Stack } from "expo-router";
+import axios from "axios";
+import { API_URL } from "../utils/config";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    console.log("ForgotPassword screen mounted");
+    return () => console.log("ForgotPassword unmounted");
+  }, []);
+
+  function isValidEmail(e: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  }
 
   return (
     <>
@@ -42,8 +55,44 @@ export default function ForgotPasswordScreen() {
           />
 
           {/* Add top margin before button */}
-          <TouchableOpacity style={[styles.button, { marginTop: 40 }]}>
-            <Text style={styles.buttonText}>Send Email</Text>
+          {message ? (
+            <Text style={{ marginBottom: 12, color: "green" }}>{message}</Text>
+          ) : null}
+          <TouchableOpacity
+            style={[styles.button, { marginTop: 40 }]}
+            onPress={async () => {
+              setMessage(null);
+              if (!isValidEmail(email))
+                return setMessage("Please enter a valid email");
+              setLoading(true);
+              try {
+                const resp = await axios.post(`${API_URL}/reset-password`, {
+                  email,
+                });
+                setMessage(
+                  resp.data?.message ||
+                    "If an account exists you will receive a reset email"
+                );
+              } catch (err: any) {
+                console.error(
+                  "Reset request failed",
+                  err?.response || err?.message || err
+                );
+                const msg =
+                  err?.response?.data?.error ||
+                  err?.response?.data?.detail ||
+                  err.message ||
+                  "Request failed";
+                setMessage(typeof msg === "string" ? msg : JSON.stringify(msg));
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Sending..." : "Send Email"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

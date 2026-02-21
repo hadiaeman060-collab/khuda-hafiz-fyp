@@ -1,10 +1,8 @@
 import axios from "axios";
-
-const BASE_URL = "http://192.168.100.129:3000"; // replace with your backend IP or localhost
+import { API_URL } from "./config";
 
 export type Service = {
-  _id?: string | number;
-  id?: string | number;
+  _id: string;
   name: string;
   price: number;
   desc?: string;
@@ -25,8 +23,11 @@ export type BookingResponse = {
 
 export const getServices = async (): Promise<Service[]> => {
   try {
-    const res = await axios.get(`${BASE_URL}/services`);
-    return res.data;
+    const res = await axios.get(`${API_URL}/services`);
+    return res.data.map((item: any) => ({
+      ...item,
+      _id: String(item._id),
+    }));
   } catch (err) {
     console.error("Error fetching services:", err);
     return [];
@@ -35,7 +36,7 @@ export const getServices = async (): Promise<Service[]> => {
 
 export const getPackages = async (): Promise<any[]> => {
   try {
-    const res = await axios.get(`${BASE_URL}/packages`);
+    const res = await axios.get(`${API_URL}/packages`);
     return res.data;
   } catch (err) {
     console.error("Error fetching packages:", err);
@@ -45,7 +46,7 @@ export const getPackages = async (): Promise<any[]> => {
 
 export const bookPackage = async (bookingData: BookingData): Promise<BookingResponse> => {
   try {
-    const res = await axios.post(`${BASE_URL}/bookings`, bookingData);
+    const res = await axios.post(`${API_URL}/bookings`, bookingData);
     return { success: true, data: res.data };
   } catch (err) {
     console.error("Error booking package:", err);

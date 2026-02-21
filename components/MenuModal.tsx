@@ -108,12 +108,13 @@ export default function MenuModal({ visible, onClose }: Props) {
         ]}
       >
         <View style={styles.profileCard}>
-          <Image
-            source={require("../assets/images/icon.png")}
-            style={styles.avatar}
-          />
-          <Text style={styles.profileName}>Fatima Nawaz</Text>
-          <Text style={styles.profileEmail}>fatima.nawaz@example.com</Text>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person" size={40} color="#8b6f47" />
+          </View>
+          <Text style={styles.profileName}>
+            {auth.user?.displayName || "Guest User"}
+          </Text>
+          <Text style={styles.profileEmail}>{auth.user?.email || ""}</Text>
         </View>
 
         <View style={styles.separator} />
@@ -269,13 +270,15 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   profileCard: { alignItems: "center", marginBottom: 8, paddingVertical: 12 },
-  avatar: {
+  avatarCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#eee",
+    backgroundColor: "#f5ede4",
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: "#3c1a06",
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileName: {
     fontSize: 16,
