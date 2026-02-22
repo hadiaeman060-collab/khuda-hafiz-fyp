@@ -4,7 +4,7 @@ import axios from "axios";
 // Android emulator:  http://10.0.2.2:3000
 // iOS simulator:    http://localhost:3000
 // Real phone:       http://YOUR_PC_LAN_IP:3000
-const BASE_URL = "http://192.168.18.23:3000";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;;
 
 export async function getCities(): Promise<string[]> {
   const res = await axios.get(`${BASE_URL}/graveyards/cities`);
