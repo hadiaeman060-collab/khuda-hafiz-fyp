@@ -540,6 +540,15 @@ app.post("/bookings", async (req, res) => {
     res.status(500).json({ error: "Failed to create booking" });
   }
 });
+app.get("/bookings", async (req, res) => {
+  try {
+    const bookings = await Booking.find().sort({ createdAt: -1 });
+    res.json({ success: true, bookings });
+  } catch (err) {
+    console.error("Failed to fetch bookings:", err);
+    res.status(500).json({ error: "Failed to fetch bookings" });
+  }
+});
   // --- Services (for Customize Package) ---
 app.get("/services", async (req, res) => {
   try {
