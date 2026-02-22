@@ -245,19 +245,101 @@ app.post("/login", async (req, res) => {
 // --- Submit feedback ---
 app.post("/feedback", async (req, res) => {
   try {
-    const { rating, message } = req.body;
+    const { rating, message, userId, email, displayName } = req.body;
 
     if (!rating) {
       return res.status(400).json({ error: "Rating is required" });
     }
+    if (!admin.apps.length) {
+      return res.status(500).json({
+        error: "Firebase Admin not initialized",
+      });
+    }
 
-    const feedback = new Feedback({ rating, message });
-    await feedback.save();
+    // Store feedback in Firestore
+    const db = admin.firestore();
+    const docRef = await db.collection("feedback").add({
+      rating,
+      message: message || "",
+      userId: userId || null,
+      email: email || null,
+      displayName: displayName || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-    res.status(201).json({ success: true, feedback });
+    res.status(201).json({ success: true, id: docRef.id });
   } catch (err) {
     console.error("Error saving feedback:", err);
     res.status(500).json({ error: "Failed to save feedback" });
+  }
+});
+
+// --- Retrieve feedbacks ---
+app.get("/feedback", async (req, res) => {
+  try {
+    if (!admin.apps.length) {
+      return res.status(500).json({ error: "Firebase Admin not initialized" });
+    }
+
+    const limit = Number(req.query.limit) || 50;
+    const db = admin.firestore();
+    const snap = await db
+      .collection("feedback")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+
+    const items = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    res.json({ success: true, count: items.length, feedbacks: items });
+  } catch (err) {
+    console.error("Error fetching feedbacks:", err);
+    res.status(500).json({ error: "Failed to fetch feedbacks" });
+  }
+});
+
+// --- Delete a feedback ---
+app.delete("/feedback/:id", async (req, res) => {
+  try {
+    if (!admin.apps.length) {
+      return res.status(500).json({ error: "Firebase Admin not initialized" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Feedback ID is required" });
+    }
+
+    const db = admin.firestore();
+    await db.collection("feedback").doc(id).delete();
+
+    res.json({ success: true, message: "Feedback deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting feedback:", err);
+    res.status(500).json({ error: "Failed to delete feedback" });
+  }
+});
+
+// --- Delete all feedbacks ---
+app.delete("/feedback", async (req, res) => {
+  try {
+    if (!admin.apps.length) {
+      return res.status(500).json({ error: "Firebase Admin not initialized" });
+    }
+
+    const db = admin.firestore();
+    const snap = await db.collection("feedback").get();
+    
+    const batch = db.batch();
+    snap.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+
+    res.json({ success: true, message: `Deleted ${snap.size} feedbacks` });
+  } catch (err) {
+    console.error("Error deleting all feedbacks:", err);
+    res.status(500).json({ error: "Failed to delete all feedbacks" });
   }
 });
 

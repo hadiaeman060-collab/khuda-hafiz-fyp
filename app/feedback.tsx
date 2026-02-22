@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,17 +7,45 @@ import {
   TextInput,
   Modal,
   Image,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import axios from "axios";
 import BottomNavBar from "../components/BottomNavBar";
+import { API_URL } from "../utils/config";
+import { useAuth } from "./context/AuthContext";
 
 export default function FeedbackScreen() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
+
+  const loadFeedbacks = async () => {
+    try {
+      setLoadingFeedbacks(true);
+      const resp = await axios.get(`${API_URL}/feedback?limit=50`);
+      if (resp.data?.feedbacks) {
+        setFeedbacks(resp.data.feedbacks);
+      } else {
+        setFeedbacks([]);
+      }
+    } catch (err) {
+      console.error("Failed to load feedbacks", err);
+      setFeedbacks([]);
+    } finally {
+      setLoadingFeedbacks(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeedbacks();
+  }, []);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -27,14 +55,21 @@ export default function FeedbackScreen() {
 
     try {
       const response = await axios.post(
-        "http://localhost:3000/feedback", // Replace with your server IP
-        { rating, message }
+        `${API_URL}/feedback`,
+        {
+          rating,
+          message,
+          userId: user?.uid,
+          email: user?.email,
+          displayName: user?.displayName,
+        }
       );
 
       if (response.data.success) {
         setShowModal(true);
         setRating(0);
         setMessage("");
+        await loadFeedbacks();
       } else {
         alert("Failed to submit feedback");
       }
@@ -100,6 +135,54 @@ export default function FeedbackScreen() {
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
             <Text style={styles.submitText}>Submit</Text>
           </TouchableOpacity>
+
+          {/* Feedback List */}
+          <View style={styles.listHeaderRow}>
+            <Text style={styles.listHeader}>Recent Feedback</Text>
+            <TouchableOpacity onPress={loadFeedbacks}>
+              <Text style={styles.refreshText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loadingFeedbacks ? (
+            <ActivityIndicator style={{ marginTop: 10 }} color="#2b0e05" />
+          ) : (
+            <FlatList
+              data={feedbacks}
+              keyExtractor={(item) => item.id || `${item.email || "anon"}-${Math.random()}`}
+              renderItem={({ item }) => {
+                const displayName = item.displayName || item.email || "Anonymous";
+                const initial = displayName.charAt(0).toUpperCase();
+                const stars = "★".repeat(item.rating) + "☆".repeat(5 - item.rating);
+                
+                return (
+                  <View style={styles.feedbackCard}>
+                    <View style={styles.feedbackHeader}>
+                      <View style={styles.avatarCircle}>
+                        <Text style={styles.avatarText}>{initial}</Text>
+                      </View>
+                      <View style={styles.feedbackHeaderText}>
+                        <Text style={styles.feedbackName}>{displayName}</Text>
+                        <Text style={styles.feedbackStars}>{stars}</Text>
+                      </View>
+                    </View>
+                    {item.message ? (
+                      <Text style={styles.feedbackMessage}>{item.message}</Text>
+                    ) : (
+                      <Text style={styles.feedbackNoMessage}>No comment provided</Text>
+                    )}
+                  </View>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No feedback yet.</Text>
+                  <Text style={styles.emptySubtext}>Be the first to share your experience!</Text>
+                </View>
+              }
+              contentContainerStyle={{ paddingBottom: 100 }}
+            />
+          )}
         </View>
       </View>
 
@@ -183,6 +266,96 @@ const styles = StyleSheet.create({
   submitText: {
     color: "#fff",
     fontWeight: "600",
+    textAlign: "center",
+  },
+
+  listHeaderRow: {
+    marginTop: 24,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  listHeader: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2b0e05",
+  },
+  refreshText: {
+    color: "#2b0e05",
+    fontWeight: "600",
+  },
+  feedbackCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 14,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  feedbackHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#2b0e05",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  avatarText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  feedbackHeaderText: {
+    flex: 1,
+  },
+  feedbackName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#2b0e05",
+    marginBottom: 2,
+  },
+  feedbackStars: {
+    fontSize: 16,
+    color: "#f5a623",
+    letterSpacing: 2,
+  },
+  feedbackMessage: {
+    fontSize: 14,
+    color: "#444",
+    lineHeight: 20,
+    fontStyle: "italic",
+  },
+  feedbackNoMessage: {
+    fontSize: 13,
+    color: "#aaa",
+    fontStyle: "italic",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: 40,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#bbb",
     textAlign: "center",
   },
 
