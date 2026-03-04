@@ -7,12 +7,16 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import OSMAutocompleteInput from "../components/OSMAutocompleteInput";
+import { bookPackage } from "../utils/servicesAPI";
+import { useAuth } from "./context/AuthContext";
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { packageName, items, pickupLocation } = useLocalSearchParams<{
     packageName?: string;
     items?: string;
@@ -34,6 +38,7 @@ export default function OrderDetailsScreen() {
 
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"" | "online" | "cod">("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (isLogisticsOnlyOrder && typeof pickupLocation === "string") {
@@ -65,7 +70,18 @@ export default function OrderDetailsScreen() {
       ? "Cash on Delivery"
       : "";
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
+    if (!user?.uid) {
+      Alert.alert("Login Required", "Please log in to place your order.");
+      router.push("/login");
+      return;
+    }
+
+    if (parsedItems.length === 0) {
+      Alert.alert("Order Error", "No order items found. Please place order again.");
+      return;
+    }
+
     if (!deliveryAddress.trim()) {
       Alert.alert("Address Required", "Please enter a delivery address.");
       return;
@@ -76,13 +92,34 @@ export default function OrderDetailsScreen() {
       return;
     }
 
-    router.push({
-      pathname: "/order-confirmation",
-      params: {
-        deliveryAddress,
-        paymentMethod: paymentLabel,
-      },
-    });
+    try {
+      setSubmitting(true);
+      const response = await bookPackage({
+        userId: user.uid,
+        packageName: String(packageName || "Service Order"),
+        items: parsedItems.map((item: any) => ({
+          name: String(item?.name ?? "Item"),
+          price: Number(item?.price) || 0,
+        })),
+        totalPrice: total,
+        paymentMode: paymentMethod === "online" ? "online" : "cash_on_delivery",
+      });
+
+      if (!response.success) {
+        Alert.alert("Booking Failed", response.error || "Could not place booking.");
+        return;
+      }
+
+      router.push({
+        pathname: "/order-confirmation",
+        params: {
+          deliveryAddress,
+          paymentMethod: paymentLabel,
+        },
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -206,8 +243,16 @@ export default function OrderDetailsScreen() {
         </View>
 
         {/* Proceed to Payment */}
-        <TouchableOpacity style={styles.payButton} onPress={handleProceed}>
-          <Text style={styles.payButtonText}>Proceed to Payment</Text>
+        <TouchableOpacity
+          style={[styles.payButton, submitting && styles.payButtonDisabled]}
+          onPress={handleProceed}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.payButtonText}>Proceed to Payment</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </>
@@ -307,6 +352,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
+  },
+  payButtonDisabled: {
+    opacity: 0.7,
   },
   payButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });

@@ -10,12 +10,10 @@ import {
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
-import { getPackages, bookPackage, Service } from "../utils/servicesAPI";
-import { useAuth } from "./context/AuthContext";
+import { getPackages, Service } from "../utils/servicesAPI";
 
 export default function StandardPackageScreen() {
   const router = useRouter();
-  const { user } = useAuth();
   const [items, setItems] = useState<Service[]>([]);
 
   // Fetch Standard Package items from backend
@@ -32,33 +30,14 @@ export default function StandardPackageScreen() {
     fetchItems();
   }, []);
 
-  const handleBook = async () => {
-    if (!user?.uid) {
-      alert("Please log in to book a package");
-      router.push("/login");
-      return;
-    }
-
-    const bookingData = {
-      userId: user.uid,
-      packageName: "Standard Package",
-      items: items.map((item) => ({ name: item.name, price: item.price })),
-      totalPrice: items.reduce((sum, item) => sum + item.price, 0),
-    };
-
-    const res = await bookPackage(bookingData);
-    if (res.success) {
-      alert("Booking successful!");
-      router.push({
-        pathname: "/order-details",
-        params: {
-          packageName: "Standard Package",
-          items: JSON.stringify(bookingData.items),
-        },
-      });
-    } else {
-      alert("Booking failed: " + res.error);
-    }
+  const handleBook = () => {
+    router.push({
+      pathname: "/order-details",
+      params: {
+        packageName: "Standard Package",
+        items: JSON.stringify(items.map((item) => ({ name: item.name, price: item.price }))),
+      },
+    });
   };
 
   return (
