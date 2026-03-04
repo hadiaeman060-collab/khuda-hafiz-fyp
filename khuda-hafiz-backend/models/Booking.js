@@ -10,6 +10,11 @@ const bookingSchema = new mongoose.Schema({
     },
   ],
   totalPrice: { type: Number, required: true },
+  paymentMode: {
+    type: String,
+    enum: ["online", "cash_on_delivery"],
+    default: "cash_on_delivery",
+  },
   status: { type: String, default: "pending" }, // pending, paid, completed
   createdAt: { type: Date, default: Date.now },
 });

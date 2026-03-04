@@ -516,13 +516,31 @@ mongoose
     console.error("MongoDB connection error:", err);
   });
 
+const normalizePaymentMode = (value) => {
+  if (!value) return null;
+  const v = String(value).trim().toLowerCase();
+
+  if (v === "online") return "online";
+  if (v === "cash_on_delivery" || v === "cash on delivery" || v === "cod") {
+    return "cash_on_delivery";
+  }
+  return null;
+};
+
   // --- Book a package ---
 app.post("/bookings", async (req, res) => {
   try {
-    const { userId, packageName, items, totalPrice } = req.body;
+    const { userId, packageName, items, totalPrice, paymentMode, paymentMethod } = req.body;
 
-    if (!userId || !packageName || !items || !totalPrice) {
+    if (!userId || !packageName || !items || totalPrice == null) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const normalizedPaymentMode = normalizePaymentMode(paymentMode || paymentMethod);
+    if ((paymentMode || paymentMethod) && !normalizedPaymentMode) {
+      return res.status(400).json({
+        error: "Invalid payment mode. Use 'online' or 'cash_on_delivery'.",
+      });
     }
 
     const booking = new Booking({
@@ -530,6 +548,7 @@ app.post("/bookings", async (req, res) => {
       packageName,
       items,
       totalPrice,
+      ...(normalizedPaymentMode ? { paymentMode: normalizedPaymentMode } : {}),
     });
 
     await booking.save();
@@ -966,6 +985,7 @@ app.post("/api/chat", chatLimiter, async (req, res) => {
         packageName,
         items,
         totalPrice,
+        paymentMode: "cash_on_delivery",
         // status defaults to "pending"
       });
 

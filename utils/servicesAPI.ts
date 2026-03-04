@@ -13,6 +13,8 @@ export type BookingData = {
   packageName: string;
   items: Array<{ name: string; price: number }>;
   totalPrice: number;
+  paymentMode?: "online" | "cash_on_delivery";
+  paymentMethod?: "online" | "cod" | "cash_on_delivery" | "cash on delivery";
 };
 
 export type BookingResponse = {
