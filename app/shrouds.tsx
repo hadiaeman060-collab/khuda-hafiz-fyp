@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "rea
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
-import FloatingCallButton from "../components/FloatingAgentButton";
+import FloatingSearchButton from "../components/FloatingSearchGraveButton";
 
 export default function ShroudsScreen() {
   const router = useRouter();
@@ -32,6 +32,7 @@ export default function ShroudsScreen() {
 
           {/* Shroud Details */}
           <Text style={styles.title}>{service.name}</Text>
+          <Text style={styles.price}>Price: Rs {service.price.toLocaleString()}</Text>
           <Text style={styles.desc}>{service.desc}</Text>
 
           {/* Shroud Options */}
@@ -77,7 +78,7 @@ export default function ShroudsScreen() {
         </ScrollView>
 
         {/* Floating Agent Button */}
-        <FloatingCallButton />
+        <FloatingSearchButton />
 
         {/* Bottom Nav Bar */}
         <BottomNavBar activeTab="Packages" />
@@ -97,8 +98,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginHorizontal: 15,
-    marginBottom: 10,
+    marginBottom: 6,
     color: "#000",
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#5a3d2b",
+    marginHorizontal: 15,
+    marginBottom: 10,
   },
   desc: {
     fontSize: 14,
@@ -139,3 +147,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+

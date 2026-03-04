@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
 import { Stack } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
-import FloatingCallButton from "../components/FloatingAgentButton";
+import FloatingSearchButton from "../components/FloatingSearchGraveButton";
 
 export default function About() {
   return (
@@ -69,7 +69,7 @@ export default function About() {
           </View>
         </ScrollView>
 
-        <FloatingCallButton />
+        <FloatingSearchButton />
         <BottomNavBar activeTab={"Home"} />
       </View>
     </>
@@ -122,3 +122,5 @@ const styles = StyleSheet.create({
   cardBody: { fontSize: 13, color: "#555", lineHeight: 18 },
   cardImage: { width: 86, height: 86, borderRadius: 8, resizeMode: "cover" },
 });
+
+

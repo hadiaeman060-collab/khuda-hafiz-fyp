@@ -706,42 +706,115 @@ User message: ${JSON.stringify(userMessage)}
 // });
 app.post("/api/chat", chatLimiter, async (req, res) => {
   try {
-    const { message, history } = req.body;
+    const { message, history, userId } = req.body;
 
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "message is required (string)" });
     }
+
+    // ✅ Required for bookings (same as manual booking)
+    if (!userId || typeof userId !== "string") {
+      return res.status(400).json({ error: "userId is required (string)" });
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ error: "GEMINI_API_KEY missing in .env" });
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    // 1) INTENT CLASSIFICATION (Option A)
-    const intentResult = await classifyIntent(genAI, message);
-    const intent = intentResult?.intent || "general";
-    const params = intentResult?.params || {};
-    const missing = Array.isArray(intentResult?.missing) ? intentResult.missing : [];
+    // -------- City restriction helpers --------
+    const ALLOWED_CITIES = ["Islamabad", "Rawalpindi", "Lahore"];
 
-    // 2) DISPATCH
+    function normalizeCity(input) {
+      if (!input) return null;
+      const c = String(input).trim().toLowerCase();
+      if (c === "islamabad") return "Islamabad";
+      if (c === "rawalpindi" || c === "pindi") return "Rawalpindi";
+      if (c === "lahore") return "Lahore";
+      return null;
+    }
+
+    function cityRestrictionReply() {
+      return (
+        "Currently our services are restricted to the following cities:\n" +
+        "• Islamabad\n" +
+        "• Rawalpindi\n" +
+        "• Lahore\n\n" +
+        "Please choose one of these cities to continue."
+      );
+    }
+
+    // -------- History sanitizer (you already use this style) --------
+    const safeHistory = Array.isArray(history)
+      ? history
+          .filter((h) => h && (h.role === "user" || h.role === "model") && typeof h.text === "string")
+          .map((h) => ({ role: h.role, parts: [{ text: h.text }] }))
+      : [];
+
+    // ✅ Extract booking details from last bot summary (so “confirm” works reliably)
+    function extractLastBookingFromHistory(hist) {
+      // Look for the last assistant message that contains the booking summary
+      // Example we will send: Package: Basic | City: Lahore
+      const lastModel = [...hist].reverse().find((h) => h.role === "model" && typeof h.text === "string");
+      if (!lastModel) return null;
+
+      const text = lastModel.text;
+
+      // Very tolerant parsing
+      const pkgMatch = text.match(/Package:\s*(basic|standard|premium)/i);
+      const cityMatch = text.match(/City:\s*([A-Za-z\s]+)/i);
+
+      const packageType = pkgMatch ? pkgMatch[1].toLowerCase() : null;
+      const city = cityMatch ? normalizeCity(cityMatch[1]) : null;
+
+      return { packageType, city };
+    }
+
+    // -------- Intent classification --------
+    const intentResult = await classifyIntent(genAI, message);
+    let intent = intentResult?.intent || "general";
+    let params = intentResult?.params || {};
+
+    // ✅ Backend-level confirm detection (no classifier changes needed)
+    const m = message.trim().toLowerCase();
+    const isConfirm = ["confirm", "yes", "y", "ok", "okay", "proceed", "book it"].includes(m);
+
+    if (isConfirm) {
+      intent = "confirm_booking";
+      // try to get params from classifier first, else from history
+      const fallback = extractLastBookingFromHistory(
+        (Array.isArray(history) ? history : []).filter((h) => h && (h.role === "user" || h.role === "model"))
+      );
+      params = {
+        packageType: params.packageType || fallback?.packageType || null,
+        city: params.city || fallback?.city || null,
+      };
+    }
+
+    // -------- DISPATCH --------
+
     if (intent === "get_services") {
       const services = await Service.find().select("name price description").lean();
       if (!services.length) return res.json({ reply: "No services are available right now." });
 
-      const lines = services.map((s) => `• ${s.name}${s.price ? ` — ${s.price}` : ""}${s.description ? ` (${s.description})` : ""}`);
+      const lines = services.map(
+        (s) =>
+          `• ${s.name}${s.price ? ` — ${s.price}` : ""}${s.description ? ` (${s.description})` : ""}`
+      );
+
       return res.json({
         reply:
           "Here are the available services in Khuda Hafiz:\n" +
           lines.join("\n") +
-          "\n\nIf you want, tell me your city and budget and I’ll suggest a suitable package."
+          "\n\nIf you want, tell me your city and package (basic/standard/premium) and I’ll guide you."
       });
     }
 
     if (intent === "get_packages") {
-      // You currently build packages from services; keep it consistent with your /packages logic
       const allServices = await Service.find().lean();
-
       const pick = (names) => allServices.filter((s) => names.includes(s.name));
+
       const basic = pick(["Flowers", "Kafan", "Catering"]);
       const standard = pick(["Flowers", "Kafan", "Grave", "Catering"]);
       const premium = allServices;
@@ -754,12 +827,12 @@ app.post("/api/chat", chatLimiter, async (req, res) => {
           `• Basic: ${fmt(basic)}\n` +
           `• Standard: ${fmt(standard)}\n` +
           `• Premium: ${fmt(premium)}\n\n` +
-          `Tell me your city + preferred date/time, and I can help you book.`
+          `Our services are currently available in: Islamabad, Rawalpindi, Lahore.\n` +
+          `Tell me: package + city (e.g. "basic Lahore") to continue.`
       });
     }
 
     if (intent === "search_graveyards") {
-      // Require lat/lng; if missing, ask
       const lat = typeof params.lat === "number" ? params.lat : null;
       const lng = typeof params.lng === "number" ? params.lng : null;
       const radius = typeof params.radius === "number" ? params.radius : 5000;
@@ -791,57 +864,129 @@ app.post("/api/chat", chatLimiter, async (req, res) => {
         });
       }
 
-      const lines = nearby.map((g) => `• ${g.name}${g.city ? ` (${g.city})` : ""}\n  ${g.address || "Address not available"}${g.contactNumber ? ` | ${g.contactNumber}` : ""}`);
+      const lines = nearby.map(
+        (g) =>
+          `• ${g.name}${g.city ? ` (${g.city})` : ""}\n  ${g.address || "Address not available"}${
+            g.contactNumber ? ` | ${g.contactNumber}` : ""
+          }`
+      );
+
       return res.json({
         reply: `Here are nearby graveyards:\n${lines.join("\n")}\n\nIf you want, tell me which one you prefer and your preferred time.`
       });
     }
 
+    // ✅ Step 1: Collect booking details (package + city), then ask confirm
     if (intent === "book_package") {
-      // Soft booking flow: collect required fields; do NOT confirm booking without user confirmation
-      const packageType = params.packageType || null;
-      const city = params.city || null;
-      const date = params.date || null;
-      const time = params.time || null;
+      const packageType = params.packageType ? String(params.packageType).toLowerCase() : null;
+      const cityNorm = normalizeCity(params.city);
+
+      if (params.city && !cityNorm) {
+        return res.json({ reply: cityRestrictionReply() });
+      }
 
       const need = [];
       if (!packageType) need.push("package type (basic / standard / premium)");
-      if (!city) need.push("city");
-      if (!date) need.push("date");
-      if (!time) need.push("time");
+      if (!cityNorm) need.push("city (Islamabad / Rawalpindi / Lahore)");
 
       if (need.length) {
         return res.json({
           reply:
-            "I can help you book a funeral package. I just need:\n" +
+            "I can help you book a package. I just need:\n" +
             need.map((x) => `• ${x}`).join("\n") +
-            "\n\nReply with these details and I’ll prepare the booking for confirmation."
+            "\n\nExample: “basic Lahore”"
         });
       }
 
       return res.json({
         reply:
           `Understood. Here’s what I have:\n` +
-          `• Package: ${packageType}\n` +
-          `• City: ${city}\n` +
-          `• Date/Time: ${date} at ${time}\n\n` +
-          `Should I place the booking now? Reply "confirm" to proceed.`
+          `Package: ${packageType}\n` +
+          `City: ${cityNorm}\n\n` +
+          `Reply "confirm" to place the booking.`
       });
     }
 
-    // 3) GENERAL CHAT (fallback)
+    // ✅ Step 2: Confirm → create Booking in MongoDB EXACTLY like manual booking
+    if (intent === "confirm_booking") {
+      const packageType = params.packageType ? String(params.packageType).toLowerCase() : null;
+      const cityNorm = normalizeCity(params.city);
+
+      if (params.city && !cityNorm) {
+        return res.json({ reply: cityRestrictionReply() });
+      }
+
+      const need = [];
+      if (!packageType) need.push("package type (basic / standard / premium)");
+      if (!cityNorm) need.push("city (Islamabad / Rawalpindi / Lahore)");
+
+      if (need.length) {
+        return res.json({
+          reply:
+            "Before I place the booking, I still need:\n" +
+            need.map((x) => `• ${x}`).join("\n") +
+            "\n\nExample: “standard Islamabad”"
+        });
+      }
+
+      // Build items from Services (same as your packages logic)
+      const allServices = await Service.find().lean();
+      const pick = (names) => allServices.filter((s) => names.includes(s.name));
+
+      let selected = [];
+      let packageName = "";
+
+      if (packageType === "basic") {
+        selected = pick(["Flowers", "Kafan", "Catering"]);
+        packageName = "Basic Package";
+      } else if (packageType === "standard") {
+        selected = pick(["Flowers", "Kafan", "Grave", "Catering"]);
+        packageName = "Standard Package";
+      } else if (packageType === "premium") {
+        selected = allServices;
+        packageName = "Premium Package";
+      } else {
+        return res.json({ reply: "Invalid package type. Use: basic, standard, premium." });
+      }
+
+      if (!selected.length) {
+        return res.json({ reply: "No services configured for this package right now." });
+      }
+
+      const items = selected.map((s) => ({
+        name: s.name,
+        price: Number(s.price || 0),
+      }));
+
+      const totalPrice = items.reduce((sum, it) => sum + it.price, 0);
+
+      // ✅ Create booking like manual booking (same schema)
+      const booking = await Booking.create({
+        userId,
+        packageName,
+        items,
+        totalPrice,
+        // status defaults to "pending"
+      });
+
+      return res.json({
+        reply:
+          "✅ Booking successful!\n\n" +
+          `Booking ID: ${booking._id}\n` +
+          `Package: ${packageName}\n` +
+          `City: ${cityNorm}\n` +
+          `Total: Rs ${totalPrice.toLocaleString()}\n\n` +
+          "You can view details in Order Details."
+      });
+    }
+
+    // -------- GENERAL CHAT fallback --------
     const model = genAI.getGenerativeModel({
       model: process.env.GEMINI_MODEL || "gemini-flash-latest",
       systemInstruction:
         process.env.GEMINI_SYSTEM_PROMPT ||
         "You are the Khuda Hafiz Assistant for a digital funeral booking platform. Be respectful, concise, and do not invent prices or confirmations."
     });
-
-    const safeHistory = Array.isArray(history)
-      ? history
-          .filter((h) => h && (h.role === "user" || h.role === "model") && typeof h.text === "string")
-          .map((h) => ({ role: h.role, parts: [{ text: h.text }] }))
-      : [];
 
     const chat = model.startChat({ history: safeHistory });
     const result = await chat.sendMessage(message);

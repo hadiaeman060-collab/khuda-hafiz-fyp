@@ -15,6 +15,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { sendChatMessage } from "../src/utils/chatAPI";
 import { router } from "expo-router";
+import { useAuth } from "./context/AuthContext";
 
 function uid() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -31,6 +32,7 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const listRef = useRef<FlatList<Message> | null>(null);
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
 
  const toHistory = (msgs: Message[]): { role: "user" | "model"; text: string }[] =>
   msgs
@@ -48,7 +50,7 @@ export default function ChatScreen() {
     setLoading(true);
 
     try {
-      const reply = await sendChatMessage(text, toHistory(messages));
+      const reply = await sendChatMessage(text, toHistory(messages), user?.uid);
       const botMsg: Message = { id: uid(), role: "model", text: reply };
       setMessages((prev) => [...prev, botMsg]);
     } catch (e: unknown) {

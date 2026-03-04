@@ -93,14 +93,7 @@ export default function HelpPage() {
       </ScrollView>
 
       {/* ====== Bottom Nav Bar ====== */}
-      <BottomNavBar
-        activeTab="Contact"
-        onHomePress={() => router.push("/home")}
-        onPackagesPress={() => router.push("/basic-package")}
-        onContactPress={() => router.push("/contact")}
-        onMessagePress={() => router.push("/chatbot")}
-        onCallPress={() => alert("Calling Khuda Hafiz...")}
-      />
+      <BottomNavBar activeTab="Contact" />
     </View>
   );
 }

@@ -92,10 +92,12 @@ export async function logout(): Promise<{ ok: boolean; message?: string; error?:
     await clearTokens();
     return { ok: true, message: 'Logout succeeded' };
   } catch (err) {
-    console.warn('Logout request failed', err?.response?.data || err.message || err);
+    const axiosErr = axios.isAxiosError(err) ? err : null;
+    const detail = axiosErr?.response?.data || (err instanceof Error ? err.message : err);
+    console.warn('Logout request failed', detail);
     // Clear local tokens even if backend call failed to ensure user is logged out locally
     await clearTokens();
-    return { ok: false, error: err?.response?.data || err.message || err };
+    return { ok: false, error: detail };
   }
 }
 
