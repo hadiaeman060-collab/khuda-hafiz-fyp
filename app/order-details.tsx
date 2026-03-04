@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,24 +6,94 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import OSMAutocompleteInput from "../components/OSMAutocompleteInput";
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
-  const { packageName, items } = useLocalSearchParams();
+  const { packageName, items, pickupLocation } = useLocalSearchParams<{
+    packageName?: string;
+    items?: string;
+    pickupLocation?: string;
+  }>();
 
-  // Parse package items
-  const parsedItems =
-    items && typeof items === "string" ? JSON.parse(items) : [];
+  const parsedItems = useMemo(() => {
+    if (!items || typeof items !== "string") return [];
+    try {
+      return JSON.parse(items);
+    } catch {
+      return [];
+    }
+  }, [items]);
 
-  const total = parsedItems.reduce((sum: number, item: any) => sum + item.price, 0);
+  const isLogisticsOnlyOrder = Boolean(
+    pickupLocation && typeof pickupLocation === "string" && pickupLocation.trim()
+  );
+
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"" | "online" | "cod">("");
+
+  useEffect(() => {
+    if (isLogisticsOnlyOrder && typeof pickupLocation === "string") {
+      setDeliveryAddress(pickupLocation);
+    }
+  }, [isLogisticsOnlyOrder, pickupLocation]);
+
+  const total = parsedItems.reduce(
+    (sum: number, item: any) => sum + (Number(item?.price) || 0),
+    0
+  );
+
+  const formattedDate = useMemo(() => {
+    try {
+      return new Date().toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const paymentLabel =
+    paymentMethod === "online"
+      ? "Online Payment"
+      : paymentMethod === "cod"
+      ? "Cash on Delivery"
+      : "";
+
+  const handleProceed = () => {
+    if (!deliveryAddress.trim()) {
+      Alert.alert("Address Required", "Please enter a delivery address.");
+      return;
+    }
+
+    if (!paymentMethod) {
+      Alert.alert("Payment Method", "Please select a payment method.");
+      return;
+    }
+
+    router.push({
+      pathname: "/order-confirmation",
+      params: {
+        deliveryAddress,
+        paymentMethod: paymentLabel,
+      },
+    });
+  };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Top Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -41,7 +111,7 @@ export default function OrderDetailsScreen() {
         <View style={styles.infoCard}>
           <View style={styles.rowBetween}>
             <Text style={styles.orderId}>#234534</Text>
-            <Text style={styles.date}>29 July 2025</Text>
+            <Text style={styles.date}>{formattedDate}</Text>
           </View>
 
           <View style={styles.sectionRow}>
@@ -51,9 +121,18 @@ export default function OrderDetailsScreen() {
             />
             <View>
               <Text style={styles.sectionTitle}>Delivery Address</Text>
-              <Text style={styles.sectionText}>
-                House 11 Street 32, Sector i8 Islamabad
-              </Text>
+              {isLogisticsOnlyOrder ? (
+                <Text style={styles.sectionText}>{deliveryAddress}</Text>
+              ) : (
+                <View style={styles.addressInputWrap}>
+                  <OSMAutocompleteInput
+                    placeholder="Enter delivery address"
+                    value={deliveryAddress}
+                    onChangeText={setDeliveryAddress}
+                    onSelect={(item) => setDeliveryAddress(item.label)}
+                  />
+                </View>
+              )}
             </View>
           </View>
 
@@ -64,7 +143,41 @@ export default function OrderDetailsScreen() {
             />
             <View>
               <Text style={styles.sectionTitle}>Payment Method</Text>
-              <Text style={styles.sectionText}>Online eWallet</Text>
+              <View style={styles.paymentOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.paymentChip,
+                    paymentMethod === "online" && styles.paymentChipActive,
+                  ]}
+                  onPress={() => setPaymentMethod("online")}
+                >
+                  <Text
+                    style={[
+                      styles.paymentChipText,
+                      paymentMethod === "online" && styles.paymentChipTextActive,
+                    ]}
+                  >
+                    Online
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.paymentChip,
+                    paymentMethod === "cod" && styles.paymentChipActive,
+                  ]}
+                  onPress={() => setPaymentMethod("cod")}
+                >
+                  <Text
+                    style={[
+                      styles.paymentChipText,
+                      paymentMethod === "cod" && styles.paymentChipTextActive,
+                    ]}
+                  >
+                    Cash on Delivery
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -93,9 +206,7 @@ export default function OrderDetailsScreen() {
         </View>
 
         {/* Proceed to Payment */}
-        <TouchableOpacity style={styles.payButton}
-        onPress={() => router.push("/order-confirmation")}
->
+        <TouchableOpacity style={styles.payButton} onPress={handleProceed}>
           <Text style={styles.payButtonText}>Proceed to Payment</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -132,6 +243,37 @@ const styles = StyleSheet.create({
   sectionIcon: { width: 22, height: 22, tintColor: BROWN, marginRight: 10 },
   sectionTitle: { fontSize: 14, fontWeight: "600", color: "#000" },
   sectionText: { fontSize: 13, color: "#444" },
+  addressInputWrap: {
+    width: "100%",
+    marginTop: 6,
+  },
+  paymentOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  paymentChip: {
+    borderWidth: 1,
+    borderColor: "#c8b8a7",
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#fff",
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  paymentChipActive: {
+    borderColor: BROWN,
+    backgroundColor: "#f1e5da",
+  },
+  paymentChipText: {
+    fontSize: 12,
+    color: "#5b5b5b",
+    fontWeight: "600",
+  },
+  paymentChipTextActive: {
+    color: BROWN,
+  },
   packageHeader: {
     fontSize: 16,
     fontWeight: "700",
