@@ -11,12 +11,10 @@ import { Picker } from "@react-native-picker/picker";
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
-import { getServices, bookPackage, Service } from "../utils/servicesAPI";
-import { useAuth } from "./context/AuthContext";
+import { getServices, Service } from "../utils/servicesAPI";
 
 export default function CustomizePackageScreen() {
   const router = useRouter();
-  const { user } = useAuth();
 
   const [services, setServices] = useState<Service[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -88,13 +86,7 @@ export default function CustomizePackageScreen() {
 
   const total = selectedItems.reduce((sum, item) => sum + item.price, 0);
 
-  const handleBook = async () => {
-    if (!user?.uid) {
-      alert("Please log in to book a package");
-      router.push("/login");
-      return;
-    }
-
+  const handleBook = () => {
     if (isCateringSelected) {
       if (!cateringDishSelection) {
         alert("Please select dishes for Catering.");
@@ -106,32 +98,13 @@ export default function CustomizePackageScreen() {
       }
     }
 
-    try {
-      const bookingData = {
-        userId: user.uid,
+    router.push({
+      pathname: "/order-details",
+      params: {
         packageName: "Custom Package",
-        items: selectedItems,
-        totalPrice: total,
-      };
-
-      const res = await bookPackage(bookingData);
-
-      if (!res.error) {
-        alert("Booking successful!");
-        router.push({
-          pathname: "/order-details",
-          params: {
-            packageName: "Custom Package",
-            items: JSON.stringify(selectedItems),
-          },
-        });
-      } else {
-        alert("Booking failed");
-      }
-    } catch (err) {
-      console.error("Booking error", err);
-      alert("Something went wrong");
-    }
+        items: JSON.stringify(selectedItems),
+      },
+    });
   };
 
   return (
