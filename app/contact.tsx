@@ -77,7 +77,7 @@ export default function ContactScreen() {
           </View>
 
           <View style={styles.socialRow}>
-            <AntDesign name="linkedin-square" size={32} color="#0077B5" style={styles.socialIcon} />
+            <FontAwesome name="linkedin-square" size={32} color="#0077B5" style={styles.socialIcon} />
             <View>
               <Text style={styles.socialTitle}>Khudahafiz.co</Text>
               <Text style={styles.socialDesc}>
@@ -105,14 +105,7 @@ export default function ContactScreen() {
         </ScrollView>
 
         {/* Bottom Navigation */}
-        <BottomNavBar
-          activeTab="Contact"
-          onHomePress={() => router.push("/home")}
-          onPackagesPress={() => router.push("/basic-package")}
-          onContactPress={() => router.push("/contact")}
-          onMessagePress={() => router.push("/chatbot")}
-          onCallPress={() => alert("Calling Khuda Hafiz...")}
-        />
+        <BottomNavBar activeTab="Contact" />
       </View>
     </>
   );

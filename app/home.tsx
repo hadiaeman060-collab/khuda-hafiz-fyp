@@ -10,13 +10,59 @@ import {
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
-import FloatingCallButton from "../components/FloatingAgentButton";
+import FloatingSearchButton from "../components/FloatingSearchGraveButton";
 import MenuModal from "../components/MenuModal";
 
 
 export default function HomeScreen() {
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
+  const services = [
+    {
+      label: "Grave",
+      icon: require("../assets/icons/grave.png"),
+      bgColor: "#FBE5C8",
+      route: "/grave",
+    },
+    {
+      label: "Shroud",
+      icon: require("../assets/icons/shroud.png"),
+      bgColor: "#4E342E",
+      route: "/shrouds",
+    },
+    {
+      label: "Support",
+      icon: require("../assets/icons/support.png"),
+      bgColor: "#F8C8D9",
+      route: "/support",
+    },
+    {
+      label: "Catering",
+      icon: require("../assets/icons/catering.png"),
+      bgColor: "#F4C07A",
+      route: "/catering",
+    },
+    {
+      label: "Logistics",
+      icon: require("../assets/icons/logistics.png"),
+      bgColor: "#A5D6A7",
+      route: "/logistics",
+    },
+    {
+      label: "NGO",
+      icon: require("../assets/icons/ngo.png"),
+      bgColor: "#90CAF9",
+      route: "/ngo",
+    },
+    {
+      label: "Chat Us",
+      icon: require("../assets/icons/message.png"),
+      bgColor: "#FFE39B",
+      route: "/chatbot",
+    },
+  ];
+  const chatService = services.find((s) => s.label === "Chat Us");
+  const primaryServices = services.filter((s) => s.label !== "Chat Us");
 
   return (
     <>
@@ -51,46 +97,27 @@ export default function HomeScreen() {
 
           {/* Services Offered */}
           <Text style={styles.sectionTitle}>Services Offered</Text>
-          <View style={styles.servicesRow}>
-            <ServiceItem
-              label="Grave"
-              icon={require("../assets/icons/grave.png")}
-              bgColor="#FBE5C8"
-              onPress={() => router.push("/grave")}
-            />
-            <ServiceItem
-              label="Shroud"
-              icon={require("../assets/icons/shroud.png")}
-              bgColor="#4E342E"
-              onPress={() => router.push("/shrouds")}
-            />
-            <ServiceItem
-              label="Support"
-              icon={require("../assets/icons/support.png")}
-              bgColor="#F8C8D9"
-              onPress={() => router.push("/support")}
-            />
-            <ServiceItem
-              label="Catering"
-              icon={require("../assets/icons/catering.png")}
-              bgColor="#F4C07A"
-              onPress={() => router.push("/catering")}
-            />
+          <View style={styles.servicesGrid}>
+            {primaryServices.map((service) => (
+              <ServiceItem
+                key={service.label}
+                label={service.label}
+                icon={service.icon}
+                bgColor={service.bgColor}
+                onPress={() => router.push(service.route as any)}
+              />
+            ))}
           </View>
-          <View style={styles.servicesRow}>
-            <ServiceItem
-              label="Logistics"
-              icon={require("../assets/icons/logistics.png")}
-              bgColor="#A5D6A7"
-              onPress={() => router.push("/logistics")}
-            />
-            <ServiceItem
-              label="NGO"
-              icon={require("../assets/icons/ngo.png")}
-              bgColor="#90CAF9"
-              onPress={() => router.push("/ngo")}
-            />
-          </View>
+          {chatService ? (
+            <View style={styles.centeredServiceRow}>
+              <ServiceItem
+                label={chatService.label}
+                icon={chatService.icon}
+                bgColor={chatService.bgColor}
+                onPress={() => router.push(chatService.route as any)}
+              />
+            </View>
+          ) : null}
 
           {/* Special Services */}
           <Text style={styles.sectionTitle}>Special Services</Text>
@@ -141,7 +168,7 @@ export default function HomeScreen() {
         </ScrollView>
 
         {/* Reusable BottomNavBar */}
-        <FloatingCallButton />
+        <FloatingSearchButton />
         <BottomNavBar activeTab="Home" />
       </View>
     </>
@@ -203,23 +230,42 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  servicesRow: {
+  servicesGrid: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginHorizontal: 15,
-    marginBottom: 15,
+    marginBottom: 2,
   },
-  serviceItem: { alignItems: "center", marginRight: 25 },
+  centeredServiceRow: {
+    alignItems: "center",
+    marginHorizontal: 15,
+    marginBottom: 8,
+  },
+  serviceItem: {
+    width: "31.5%",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#eee4d8",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   iconCircle: {
-    width: 55,
-    height: 55,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  serviceIcon: { width: 28, height: 28, resizeMode: "contain" },
-  serviceLabel: { fontSize: 12, color: "#333" },
+  serviceIcon: { width: 36, height: 36, resizeMode: "contain" },
+  serviceLabel: { fontSize: 13, color: "#2d2d2d", fontWeight: "600" },
   cardRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -258,3 +304,5 @@ const styles = StyleSheet.create({
   guidanceText: { flex: 1, fontSize: 13, color: "#333" },
   /* modal moved into components/MenuModal.tsx */
 });
+
+

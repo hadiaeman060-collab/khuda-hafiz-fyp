@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  TextInput,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
@@ -19,7 +21,11 @@ export default function CustomizePackageScreen() {
   const [services, setServices] = useState<Service[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
 
-  // 🔹 Fetch services from MongoDB
+  const [cateringDishSelection, setCateringDishSelection] = useState<
+    "" | "dish1" | "dish2" | "both"
+  >("");
+  const [cateringPeopleInput, setCateringPeopleInput] = useState("");
+
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -32,30 +38,72 @@ export default function CustomizePackageScreen() {
     fetchServices();
   }, []);
 
-  // 🔹 Select / unselect service
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  // 🔹 Selected items
+  const cateringPeople = Number.parseInt(cateringPeopleInput, 10);
+  const validCateringPeople =
+    Number.isFinite(cateringPeople) && cateringPeople > 0 ? cateringPeople : 0;
+  const cateringPerPerson = cateringDishSelection === "both" ? 1000 : 500;
+
+  const isCateringService = (name: string) => /catering/i.test(name);
+  const cateringService = services.find((s) => isCateringService(s.name));
+  const isCateringSelected = !!(
+    cateringService && selected.includes(cateringService._id)
+  );
+
+  const cateringDishLabel =
+    cateringDishSelection === "dish1"
+      ? "2 Dishes & Roti"
+      : cateringDishSelection === "dish2"
+      ? "Rice, Chicken & Roti (Customizable)"
+      : cateringDishSelection === "both"
+      ? "Both Dishes"
+      : "";
+
   const selectedItems = services
     .filter((s) => selected.includes(s._id))
-    .map((s) => ({
-      name: s.name,
-      price: s.price,
-    }));
+    .map((s) => {
+      if (!isCateringService(s.name)) {
+        return {
+          name: s.name,
+          price: s.price,
+        };
+      }
 
-  // 🔹 Total price
+      const cateringTotal = validCateringPeople * cateringPerPerson;
+      const cateringName =
+        cateringDishLabel && validCateringPeople
+          ? `${s.name} - ${cateringDishLabel} (${validCateringPeople} people)`
+          : s.name;
+
+      return {
+        name: cateringName,
+        price: cateringTotal,
+      };
+    });
+
   const total = selectedItems.reduce((sum, item) => sum + item.price, 0);
 
-  // 🔹 Book package
   const handleBook = async () => {
     if (!user?.uid) {
       alert("Please log in to book a package");
       router.push("/login");
       return;
+    }
+
+    if (isCateringSelected) {
+      if (!cateringDishSelection) {
+        alert("Please select dishes for Catering.");
+        return;
+      }
+      if (!validCateringPeople) {
+        alert("Please enter valid number of people for Catering.");
+        return;
+      }
     }
 
     try {
@@ -94,7 +142,6 @@ export default function CustomizePackageScreen() {
         <TopBar showBack onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Tabs */}
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => router.push("/basic-package")}>
               <Text style={styles.tab}>Basic</Text>
@@ -113,42 +160,77 @@ export default function CustomizePackageScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Services */}
-          {services.map((item) => (
-            <TouchableOpacity
-              key={item._id}
-              style={styles.packageCard}
-              onPress={() => toggleSelect(item._id)}
-            >
-              <View style={styles.cardRow}>
-                <View
-                  style={[
-                    styles.radio,
-                    selected.includes(item._id) && styles.radioSelected,
-                  ]}
-                />
-                <Text style={styles.packageTitle}>{item.name}</Text>
-                <Text style={styles.packagePrice}>
-                  Rs {item.price.toLocaleString()}
-                </Text>
+          {services.map((item) => {
+            const itemSelected = selected.includes(item._id);
+            const itemIsCatering = isCateringService(item.name);
+            const itemPrice = itemIsCatering
+              ? validCateringPeople * cateringPerPerson
+              : item.price;
+
+            return (
+              <View key={item._id} style={styles.packageCard}>
+                <TouchableOpacity
+                  onPress={() => toggleSelect(item._id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.cardRow}>
+                    <View
+                      style={[styles.radio, itemSelected && styles.radioSelected]}
+                    />
+                    <Text style={styles.packageTitle}>{item.name}</Text>
+                    <Text style={styles.packagePrice}>
+                      Rs {(itemSelected ? itemPrice : item.price).toLocaleString()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <Text style={styles.packageDesc}>{item.desc}</Text>
+
+                {itemIsCatering && itemSelected ? (
+                  <View style={styles.expandWrap}>
+                    <Text style={styles.expandLabel}>Select Dishes</Text>
+                    <View style={styles.pickerWrap}>
+                      <Picker
+                        selectedValue={cateringDishSelection}
+                        onValueChange={(value) => setCateringDishSelection(value)}
+                      >
+                        <Picker.Item label="Select dish type" value="" />
+                        <Picker.Item label="2 Dishes & Roti" value="dish1" />
+                        <Picker.Item
+                          label="Rice, Chicken & Roti (Customizable)"
+                          value="dish2"
+                        />
+                        <Picker.Item label="Both Dishes" value="both" />
+                      </Picker>
+                    </View>
+
+                    <Text style={styles.expandLabel}>Number of People</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter number of people"
+                      keyboardType="number-pad"
+                      value={cateringPeopleInput}
+                      onChangeText={(text) =>
+                        setCateringPeopleInput(text.replace(/[^0-9]/g, ""))
+                      }
+                    />
+
+                    <Text style={styles.cateringTotal}>
+                      Catering Total: Rs {(validCateringPeople * cateringPerPerson).toLocaleString()}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
+            );
+          })}
 
-              <Text style={styles.packageDesc}>{item.desc}</Text>
-            </TouchableOpacity>
-          ))}
-
-          {/* Total */}
           <View style={styles.totalCard}>
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalPrice}>Rs {total.toLocaleString()}</Text>
           </View>
 
-          {/* Book Button */}
           <TouchableOpacity
-            style={[
-              styles.buyButton,
-              selected.length === 0 && { opacity: 0.5 },
-            ]}
+            style={[styles.buyButton, selected.length === 0 && { opacity: 0.5 }]}
             disabled={selected.length === 0}
             onPress={handleBook}
           >
@@ -161,11 +243,6 @@ export default function CustomizePackageScreen() {
     </>
   );
 }
-
-
-
-
-/* ===================== STYLES ===================== */
 
 const BROWN = "#5a3d2b";
 
@@ -242,6 +319,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginLeft: 28,
+  },
+
+  expandWrap: {
+    marginTop: 10,
+    marginLeft: 28,
+  },
+
+  expandLabel: {
+    fontSize: 12,
+    color: "#444",
+    marginBottom: 6,
+    fontWeight: "600",
+  },
+
+  pickerWrap: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    marginBottom: 10,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    backgroundColor: "#fff",
+  },
+
+  cateringTotal: {
+    fontSize: 13,
+    color: BROWN,
+    fontWeight: "700",
   },
 
   totalCard: {
