@@ -15,10 +15,12 @@ import axios from "axios";
 import BottomNavBar from "../components/BottomNavBar";
 import { API_URL } from "../utils/config";
 import { useAuth } from "./context/AuthContext";
+import { useNotifications } from "./context/NotificationContext";
 
 export default function FeedbackScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
 
   const [rating, setRating] = useState(0);
   const [message, setMessage] = useState("");
@@ -66,6 +68,11 @@ export default function FeedbackScreen() {
       );
 
       if (response.data.success) {
+        addNotification({
+          title: "Feedback Submitted",
+          text: "Thanks for your feedback. We appreciate your time.",
+          type: "note",
+        });
         setShowModal(true);
         setRating(0);
         setMessage("");

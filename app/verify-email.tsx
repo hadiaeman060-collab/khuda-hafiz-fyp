@@ -13,6 +13,7 @@ import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import { API_URL } from "../utils/config";
 import AuthUtils from "../utils/auth";
+import { useNotifications } from "./context/NotificationContext";
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function VerifyEmailScreen() {
     password?: string;
   } | null>(null);
   const auth = useAuth();
+  const { addNotification } = useNotifications();
   const BACKEND_URL = API_URL;
 
   useEffect(() => {
@@ -80,6 +82,11 @@ export default function VerifyEmailScreen() {
       const tokenObj = resp.data?.token;
       const profile = resp.data?.profile;
       await auth.signIn(tokenObj, profile);
+      addNotification({
+        title: "Signup Successful",
+        text: "Your account has been created successfully.",
+        type: "success",
+      });
 
       // Clear pending signup data
       try {
