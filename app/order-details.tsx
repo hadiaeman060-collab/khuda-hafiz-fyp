@@ -13,10 +13,12 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import OSMAutocompleteInput from "../components/OSMAutocompleteInput";
 import { bookPackage } from "../utils/servicesAPI";
 import { useAuth } from "./context/AuthContext";
+import { useNotifications } from "./context/NotificationContext";
 
 export default function OrderDetailsScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { addNotification } = useNotifications();
   const { packageName, items, pickupLocation } = useLocalSearchParams<{
     packageName?: string;
     items?: string;
@@ -109,6 +111,12 @@ export default function OrderDetailsScreen() {
         Alert.alert("Booking Failed", response.error || "Could not place booking.");
         return;
       }
+
+      addNotification({
+        title: "Booking Confirmed",
+        text: `${String(packageName || "Your package")} booking was placed successfully.`,
+        type: "success",
+      });
 
       router.push({
         pathname: "/order-confirmation",

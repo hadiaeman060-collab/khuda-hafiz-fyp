@@ -1,5 +1,6 @@
 import { Stack, useSegments, useRouter } from "expo-router";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 
@@ -52,10 +53,12 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <AuthGuard />
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* All screens will inherit headerShown: false */}
-      </Stack>
+      <NotificationProvider>
+        <AuthGuard />
+        <Stack screenOptions={{ headerShown: false }}>
+          {/* All screens will inherit headerShown: false */}
+        </Stack>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

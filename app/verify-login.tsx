@@ -13,6 +13,7 @@ import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import { API_URL } from "../utils/config";
 import AuthUtils from "../utils/auth";
+import { useNotifications } from "./context/NotificationContext";
 
 export default function VerifyLoginScreen() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function VerifyLoginScreen() {
   );
   const [pending, setPending] = useState<{ password?: string } | null>(null);
   const auth = useAuth();
+  const { addNotification } = useNotifications();
   const BACKEND_URL = API_URL;
 
   useEffect(() => {
@@ -66,6 +68,11 @@ export default function VerifyLoginScreen() {
       const tokenObj = resp.data?.token;
       const profile = resp.data?.profile;
       await auth.signIn(tokenObj, profile);
+      addNotification({
+        title: "Login Successful",
+        text: "You are now logged in to your account.",
+        type: "info",
+      });
 
       // Clear pending login data
       try {

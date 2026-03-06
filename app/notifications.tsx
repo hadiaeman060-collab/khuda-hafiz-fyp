@@ -1,41 +1,18 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import { AppNotification, useNotifications } from "./context/NotificationContext";
 
-const DATA = [
-  {
-    id: "1",
-    title: "Standard package",
-    text: "Your package has been successfully booked and will arrive at your place shortly.",
-    date: "30 July, 2025",
-    type: "success",
-  },
-  {
-    id: "2",
-    title: "Update",
-    text: "Your package has arrived at your address, please be there to receive it.",
-    date: "30 July, 2025",
-    type: "info",
-  },
-  {
-    id: "3",
-    title: "Feedback",
-    text: "How was our service? Please take a moment to give us a review, so we can improve.",
-    date: "30 July, 2025",
-    type: "note",
-  },
-];
-
-function NotificationItem({ item }: { item: any }) {
+function NotificationItem({ item }: { item: AppNotification }) {
   // use the app brown color for all notification icons
   const iconColor = "#3c1a06";
   const iconName =
@@ -44,6 +21,18 @@ function NotificationItem({ item }: { item: any }) {
       : item.type === "info"
       ? "notifications-outline"
       : "chatbubble-ellipses-outline";
+
+  const date = useMemo(() => {
+    try {
+      return new Date(item.createdAt).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return "";
+    }
+  }, [item.createdAt]);
 
   return (
     <TouchableOpacity activeOpacity={0.9} style={styles.cardContainer}>
@@ -57,7 +46,7 @@ function NotificationItem({ item }: { item: any }) {
         <View style={styles.cardBody}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardDate}>{item.date}</Text>
+            <Text style={styles.cardDate}>{date}</Text>
           </View>
           <Text style={styles.cardText}>{item.text}</Text>
         </View>
@@ -68,6 +57,13 @@ function NotificationItem({ item }: { item: any }) {
 
 export default function Notifications() {
   const router = useRouter();
+  const { notifications, markAllAsRead } = useNotifications();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      markAllAsRead();
+    }, [markAllAsRead])
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -82,9 +78,11 @@ export default function Notifications() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>Previously</Text>
 
-        {DATA.map((d) => (
-          <NotificationItem key={d.id} item={d} />
-        ))}
+        {notifications.length === 0 ? (
+          <Text style={styles.emptyText}>No notifications yet.</Text>
+        ) : (
+          notifications.map((d) => <NotificationItem key={d.id} item={d} />)
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -131,6 +129,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 12,
     color: "#111",
+  },
+  emptyText: {
+    color: "#666",
+    fontSize: 14,
   },
   iconWrap: {
     width: 52,

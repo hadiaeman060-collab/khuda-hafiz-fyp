@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import { useNotifications } from "../app/context/NotificationContext";
 
 type TopBarProps = {
   showBack?: boolean;
@@ -25,6 +26,7 @@ export default function TopBar({
   onBellPress,
 }: TopBarProps) {
   const router = useRouter();
+  const { unreadCount } = useNotifications();
   const [locationText, setLocationText] = useState("Fetching location...");
 
   useEffect(() => {
@@ -81,11 +83,19 @@ export default function TopBar({
 
         <TouchableOpacity
           onPress={onBellPress || (() => router.push("/notifications" as any))}
+          style={styles.bellWrap}
         >
           <Image
             source={require("../assets/icons/bell.png")}
             style={styles.topIcon}
           />
+          {unreadCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </Text>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -111,6 +121,26 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     tintColor: "#5a3d2b",
+  },
+  bellWrap: {
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#c62828",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
   },
   titleText: {
     fontSize: 16,
