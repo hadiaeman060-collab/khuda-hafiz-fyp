@@ -214,6 +214,7 @@ export default function GraveScreen() {
                 pathname: "/order-details",
                 params: {
                   packageName: service.name,
+                  deliveryAddress: selectedGraveyard.address,
                   items: JSON.stringify([
                     { name: `${service.name} (${graveCount})`, price: totalPrice },
                     { name: `Graveyard: ${selectedGraveyard.name}`, price: 0 },
