@@ -12,20 +12,33 @@ const Booking = require("./models/Booking");
 const Package = require("./models/Package");
 const Graveyard = require("./models/Graveyard");
 const Feedback = require("./models/Feedback");
+const defaultGraveyards = require("./seed/graveyards.data");
 const graveyardRoutes = require("./routes/graveyard.routes");
 const rateLimit = require("express-rate-limit");
 
+async function ensureDefaultGraveyards() {
+  const count = await Graveyard.countDocuments();
+  if (count > 0) {
+    console.log(`Graveyards already exist (${count}). Skipping default insert.`);
+    return;
+  }
+
+  await Graveyard.insertMany(defaultGraveyards);
+  console.log(`Inserted ${defaultGraveyards.length} default graveyards.`);
+}
 
 
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB connected successfully"))
+  .then(async () => {
+    console.log("MongoDB connected successfully");
+    await ensureDefaultGraveyards();
+  })
   .catch((err) => console.error("MongoDB connection error:", err));
 
 const PORT = process.env.PORT || 3000;
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
-const HF_API_KEY = process.env.HF_API_KEY; // Hugging Face Router API Key
 
 // --- Firebase Admin SDK initialization ---
 try {
@@ -670,59 +683,6 @@ User message: ${JSON.stringify(userMessage)}
     return { intent: "general", params: {}, missing: [], confidence: 0 };
   }
 }
-// app.post("/api/chat", chatLimiter, async (req, res) => {
-//   try {
-//     const { message, history } = req.body;
-
-//     if (!message || typeof message !== "string") {
-//       return res.status(400).json({ error: "message is required (string)" });
-//     }
-
-//     if (!process.env.GEMINI_API_KEY) {
-//       return res.status(500).json({ error: "GEMINI_API_KEY missing in .env" });
-//     }
-
-//     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-//     // Use a fast model by default; you can change via .env
-//     const model = genAI.getGenerativeModel({
-//       model: process.env.GEMINI_MODEL || "gemini-flash-latest",
-//       systemInstruction:
-//         process.env.GEMINI_SYSTEM_PROMPT ||
-//         "You are a helpful assistant inside the Khuda Hafiz app. Keep replies concise and friendly.",
-//     });
-
-//     // Optional: keep conversation memory
-//     // history format expected from frontend:
-//     // [{ role: "user"|"model", text: "..." }, ...]
-//     const safeHistory = Array.isArray(history)
-//       ? history
-//           .filter(
-//             (h) =>
-//               h &&
-//               (h.role === "user" || h.role === "model") &&
-//               typeof h.text === "string"
-//           )
-//           .map((h) => ({
-//             role: h.role,
-//             parts: [{ text: h.text }],
-//           }))
-//       : [];
-
-//     const chat = model.startChat({ history: safeHistory });
-
-//     const result = await chat.sendMessage(message);
-//     const reply = result?.response?.text?.() || "No reply from Gemini";
-
-//     return res.json({ reply });
-//   } catch (err) {
-//     console.error("Gemini chat error:", err);
-//     return res.status(500).json({
-//       error: "Chatbot error",
-//       details: String(err?.message || err),
-//     });
-//   }
-// });
 app.post("/api/chat", chatLimiter, async (req, res) => {
   try {
     const { message, history, userId } = req.body;

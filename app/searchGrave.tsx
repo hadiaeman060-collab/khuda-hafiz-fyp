@@ -11,10 +11,11 @@ import {
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
+import * as Location from "expo-location";
 
 // ✅ Make sure this relative path matches where this file lives.
 // If your screen is app/(tabs)/graveyardSearch.tsx, use "../../src/utils/graveyardAPI"
-import { getCities, getGraveyardsByCity } from "../src/utils/graveyardAPI";
+import { getCities, getGraveyardsByCity, getNearbyGraveyards } from "../src/utils/graveyardAPI";
 
 type GraveyardApi = {
   _id: string;
@@ -35,6 +36,8 @@ export default function GraveyardSearchScreen() {
 
   const [cities, setCities] = useState<string[]>([]);
   const [selectedCity, setSelectedCity] = useState<string>("");
+  const [searchMode, setSearchMode] = useState<"city" | "nearby" | null>(null);
+  const [detectedPlace, setDetectedPlace] = useState<string>("");
 
   const [graveyards, setGraveyards] = useState<GraveyardApi[]>([]);
 
@@ -54,6 +57,8 @@ export default function GraveyardSearchScreen() {
   }, []);
 
   const onSelectCity = async (city: string) => {
+    setSearchMode("city");
+    setDetectedPlace("");
     setSelectedCity(city);
 
     if (!city) {
@@ -68,6 +73,65 @@ export default function GraveyardSearchScreen() {
     } catch (err: any) {
       console.error(err);
       Alert.alert("Error", err.message || "Failed to load graveyards");
+    } finally {
+      setLoadingList(false);
+    }
+  };
+
+  const resolveNearestKnownCity = (rawPlace: string, knownCities: string[]) => {
+    const normalizedRaw = rawPlace.toLowerCase().trim();
+    return knownCities.find((c) => {
+      const normalizedCity = c.toLowerCase().trim();
+      return (
+        normalizedRaw === normalizedCity ||
+        normalizedRaw.includes(normalizedCity) ||
+        normalizedCity.includes(normalizedRaw)
+      );
+    });
+  };
+
+  const onSearchNearby = async () => {
+    try {
+      setLoadingList(true);
+      setSearchMode("nearby");
+      setSelectedCity("");
+      setDetectedPlace("");
+
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        Alert.alert("Permission required", "Allow location access to search nearby graveyards.");
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      const places = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      const place = places?.[0];
+      const locationText =
+        place?.city ||
+        place?.subregion ||
+        place?.region ||
+        place?.district ||
+        "";
+      setDetectedPlace(locationText);
+
+      const matchedCity = locationText ? resolveNearestKnownCity(locationText, cities) : undefined;
+      if (matchedCity) {
+        const cityList = await getGraveyardsByCity(matchedCity);
+        setSelectedCity(matchedCity);
+        setGraveyards(cityList);
+        return;
+      }
+
+      const nearby = await getNearbyGraveyards(lat, lng, 15000);
+      setGraveyards(nearby);
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert("Error", err.message || "Failed to load nearby graveyards");
     } finally {
       setLoadingList(false);
     }
@@ -95,9 +159,18 @@ export default function GraveyardSearchScreen() {
   };
 
   const headingText = useMemo(() => {
+    if (searchMode === "nearby" && selectedCity) {
+      return `Nearby Graveyards in ${selectedCity}`;
+    }
+    if (searchMode === "nearby" && detectedPlace) {
+      return `Nearby Graveyards in ${detectedPlace}`;
+    }
+    if (searchMode === "nearby") {
+      return "Nearby Graveyards";
+    }
     if (!selectedCity) return "Search Graveyards by City";
     return `Available Graveyards in ${selectedCity}`;
-  }, [selectedCity]);
+  }, [selectedCity, searchMode, detectedPlace]);
 
   return (
     <>
@@ -128,6 +201,12 @@ export default function GraveyardSearchScreen() {
           )}
         </View>
 
+        <View style={styles.nearbyWrap}>
+          <TouchableOpacity style={styles.nearbyBtn} onPress={onSearchNearby}>
+            <Text style={styles.nearbyBtnText}>Search Nearby</Text>
+          </TouchableOpacity>
+        </View>
+
         {loadingList ? (
           <View style={styles.center}>
             <ActivityIndicator size="large" color={BROWN} />
@@ -135,8 +214,10 @@ export default function GraveyardSearchScreen() {
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>
-            {!selectedCity ? (
+            {searchMode === null && !selectedCity ? (
               <Text style={styles.noResult}>Please select a city to see available graveyards.</Text>
+            ) : graveyards.length === 0 && searchMode === "nearby" ? (
+              <Text style={styles.noResult}>No nearby graveyards found for your current location.</Text>
             ) : graveyards.length === 0 ? (
               <Text style={styles.noResult}>No active graveyards found in {selectedCity}.</Text>
             ) : (
@@ -226,6 +307,27 @@ const styles = StyleSheet.create({
 
   rowCenter: { flexDirection: "row", alignItems: "center", padding: 12 },
   pickerLoadingText: { marginLeft: 10, color: "#666" },
+
+  nearbyWrap: {
+    marginHorizontal: 15,
+    marginBottom: 6,
+    alignItems: "flex-start",
+  },
+
+  nearbyBtn: {
+    borderWidth: 1,
+    borderColor: BROWN,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: "#fff",
+  },
+
+  nearbyBtnText: {
+    color: BROWN,
+    fontWeight: "600",
+    fontSize: 13,
+  },
 
   center: {
     flex: 1,
