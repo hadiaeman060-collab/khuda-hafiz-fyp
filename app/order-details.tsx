@@ -19,10 +19,12 @@ export default function OrderDetailsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { addNotification } = useNotifications();
-  const { packageName, items, pickupLocation } = useLocalSearchParams<{
+  const { packageName, items, pickupLocation, deliveryAddress: deliveryAddressParam } =
+    useLocalSearchParams<{
     packageName?: string;
     items?: string;
     pickupLocation?: string;
+    deliveryAddress?: string;
   }>();
 
   const parsedItems = useMemo(() => {
@@ -34,19 +36,27 @@ export default function OrderDetailsScreen() {
     }
   }, [items]);
 
-  const isLogisticsOnlyOrder = Boolean(
-    pickupLocation && typeof pickupLocation === "string" && pickupLocation.trim()
-  );
+  const fixedDeliveryAddress = useMemo(() => {
+    if (typeof deliveryAddressParam === "string" && deliveryAddressParam.trim()) {
+      return deliveryAddressParam;
+    }
+    if (typeof pickupLocation === "string" && pickupLocation.trim()) {
+      return pickupLocation;
+    }
+    return "";
+  }, [deliveryAddressParam, pickupLocation]);
+
+  const isFixedDeliveryAddress = Boolean(fixedDeliveryAddress);
 
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"" | "online" | "cod">("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isLogisticsOnlyOrder && typeof pickupLocation === "string") {
-      setDeliveryAddress(pickupLocation);
+    if (isFixedDeliveryAddress) {
+      setDeliveryAddress(fixedDeliveryAddress);
     }
-  }, [isLogisticsOnlyOrder, pickupLocation]);
+  }, [isFixedDeliveryAddress, fixedDeliveryAddress]);
 
   const total = parsedItems.reduce(
     (sum: number, item: any) => sum + (Number(item?.price) || 0),
@@ -166,7 +176,7 @@ export default function OrderDetailsScreen() {
             />
             <View>
               <Text style={styles.sectionTitle}>Delivery Address</Text>
-              {isLogisticsOnlyOrder ? (
+              {isFixedDeliveryAddress ? (
                 <Text style={styles.sectionText}>{deliveryAddress}</Text>
               ) : (
                 <View style={styles.addressInputWrap}>
