@@ -227,7 +227,7 @@ export default function LogisticScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   mainImage: { width: "100%", height: 260, marginBottom: 20 },
   title: { fontSize: 18, fontWeight: "bold", marginHorizontal: 15, marginBottom: 10, color: "#000" },
   desc: { fontSize: 14, color: "#444", marginHorizontal: 15, marginBottom: 20, lineHeight: 20 },

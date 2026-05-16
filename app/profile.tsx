@@ -118,7 +118,7 @@ export default function ProfilePage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   // add top spacing so content sits lower and center the headings
   content: { padding: 20, alignItems: "center", paddingTop: 40 },
   title: {

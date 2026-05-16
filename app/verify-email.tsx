@@ -216,7 +216,7 @@ export default function VerifyEmailScreen() {
 
 const CIRCLE_SIZE = 100;
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: "#fff" },
+  container: { flexGrow: 1, backgroundColor: "#fff8ef" },
   header: {
     backgroundColor: "#3c1a06",
     alignItems: "center",
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: "#2b0e05",
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 999,
     alignItems: "center",
     marginBottom: 15,
   },

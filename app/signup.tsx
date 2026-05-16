@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import Checkbox from "expo-checkbox";
 import { Stack, Link, useRouter } from "expo-router";
 import axios from "axios";
@@ -16,6 +17,7 @@ import { useAuth } from "./context/AuthContext";
 // Updated import to use Expo public env variable
 import { API_URL } from "../utils/config";
 import { saveToken } from "../utils/auth";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -93,7 +95,10 @@ export default function SignupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <View style={styles.header}>
+        <LinearGradient
+          colors={["#2b1208", "#3c1a06", "#7a4a2a"]}
+          style={styles.header}
+        >
           <View style={styles.logoCircle}>
             <Image
               source={require("../assets/logo.png")}
@@ -101,9 +106,9 @@ export default function SignupScreen() {
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.title}>Sign Up</Text>
-          <Text style={styles.subtitle}>Get your Khuda Hafiz account now</Text>
-        </View>
+          <Text style={styles.title}>Create account</Text>
+          <Text style={styles.subtitle}>Start with a secure Khuda Hafiz profile</Text>
+        </LinearGradient>
 
         {/* Form */}
         <View style={styles.form}>
@@ -210,33 +215,35 @@ const CIRCLE_SIZE = 100;
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: "#fff",
+    backgroundColor: palette.cream,
   },
   header: {
-    backgroundColor: "#3c1a06",
     alignItems: "center",
-    paddingTop: 40,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingTop: 46,
+    paddingBottom: 38,
+    borderBottomLeftRadius: 34,
+    borderBottomRightRadius: 34,
+    overflow: "hidden",
   },
   logoCircle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: "#2b0e05",
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
   },
   logo: {
     width: "70%",
     height: "70%",
   },
   title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 28,
+    fontWeight: "900",
+    color: "#f7efe4",
     marginTop: 5,
   },
   subtitle: {
@@ -245,22 +252,30 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   form: {
-    padding: 20,
+    margin: spacing.lg,
+    marginTop: -20,
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    backgroundColor: "rgba(255,255,255,0.97)",
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.medium,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "800",
     marginBottom: 6,
-    color: "#000",
+    color: palette.brown,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginBottom: 15,
-    backgroundColor: "#fff",
+    backgroundColor: palette.cream,
+    color: palette.ink,
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -270,34 +285,37 @@ const styles = StyleSheet.create({
   checkboxText: {
     marginLeft: 8,
     fontSize: 12,
-    color: "#000",
+    color: palette.muted,
   },
   button: {
-    backgroundColor: "#2b0e05",
+    backgroundColor: palette.mahogany,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.pill,
     alignItems: "center",
     marginBottom: 15,
+    ...shadow.glow,
   },
   buttonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "900",
     fontSize: 16,
   },
   orText: {
     textAlign: "center",
     marginBottom: 15,
-    color: "#666",
+    color: palette.faint,
+    fontWeight: "800",
   },
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
+    borderColor: palette.border,
+    borderRadius: radius.pill,
     paddingVertical: 12,
     marginBottom: 20,
+    backgroundColor: palette.white,
   },
   googleLogo: {
     width: 20,
@@ -307,7 +325,7 @@ const styles = StyleSheet.create({
   googleText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#000",
+    color: palette.ink,
   },
   loginRow: {
     flexDirection: "row",
@@ -315,12 +333,12 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 13,
-    color: "#444",
+    color: palette.muted,
   },
   loginLink: {
     fontSize: 13,
-    color: "#2b0e05",
-    fontWeight: "bold",
+    color: palette.mahogany,
+    fontWeight: "900",
     textDecorationLine: "none",
   },
 });

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useNotifications } from "../app/context/NotificationContext";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 type TopBarProps = {
   showBack?: boolean;
@@ -30,29 +31,29 @@ export default function TopBar({
   const [locationText, setLocationText] = useState("Fetching location...");
 
   useEffect(() => {
-    if (showLocation) {
-      (async () => {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          setLocationText("Location access denied");
-          return;
-        }
+    if (!showLocation) return;
 
-        let loc = await Location.getCurrentPositionAsync({});
-        let reverseGeocode = await Location.reverseGeocodeAsync({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationText("Location access denied");
+        return;
+      }
 
-        if (reverseGeocode.length > 0) {
-          const city = reverseGeocode[0].city || reverseGeocode[0].region;
-          const country = reverseGeocode[0].country;
-          setLocationText(`${city}, ${country}`);
-        } else {
-          setLocationText("Unknown location");
-        }
-      })();
-    }
+      const loc = await Location.getCurrentPositionAsync({});
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+
+      if (reverseGeocode.length > 0) {
+        const city = reverseGeocode[0].city || reverseGeocode[0].region;
+        const country = reverseGeocode[0].country;
+        setLocationText(`${city}, ${country}`);
+      } else {
+        setLocationText("Unknown location");
+      }
+    })();
   }, [showLocation]);
 
   return (
@@ -60,6 +61,7 @@ export default function TopBar({
       <View style={styles.topBar}>
         {showMenu ? (
           <TouchableOpacity
+            style={styles.iconButton}
             onPress={onMenuPress || (() => alert("Menu opened"))}
           >
             <Image
@@ -68,22 +70,32 @@ export default function TopBar({
             />
           </TouchableOpacity>
         ) : showBack ? (
-          <TouchableOpacity onPress={onBackPress || (() => router.back())}>
-            <Ionicons name="chevron-back" size={26} color="#5a3d2b" />
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={onBackPress || (() => router.back())}
+          >
+            <Ionicons name="chevron-back" size={24} color={palette.brown} />
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 26 }} />
+          <View style={styles.iconButtonPlaceholder} />
         )}
 
         {showLocation ? (
-          <Text style={styles.locationText}>📍 {locationText}</Text>
+          <View style={styles.locationPill}>
+            <Ionicons name="location" size={14} color={palette.brown} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              {locationText}
+            </Text>
+          </View>
         ) : (
-          <Text style={styles.titleText}>{title}</Text>
+          <Text style={styles.titleText} numberOfLines={1}>
+            {title}
+          </Text>
         )}
 
         <TouchableOpacity
           onPress={onBellPress || (() => router.push("/notifications" as any))}
-          style={styles.bellWrap}
+          style={[styles.iconButton, styles.bellWrap]}
         >
           <Image
             source={require("../assets/icons/bell.png")}
@@ -104,23 +116,39 @@ export default function TopBar({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: "#fff",
+    backgroundColor: palette.cream,
   },
-
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radius.lg,
+    ...shadow.soft,
+  },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: palette.parchment,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconButtonPlaceholder: {
+    width: 42,
+    height: 42,
   },
   topIcon: {
-    width: 26,
-    height: 26,
-    tintColor: "#5a3d2b",
+    width: 22,
+    height: 22,
+    tintColor: palette.brown,
   },
   bellWrap: {
     position: "relative",
@@ -132,24 +160,42 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#c62828",
+    backgroundColor: palette.danger,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: palette.white,
   },
   badgeText: {
-    color: "#fff",
+    color: palette.white,
     fontSize: 10,
     fontWeight: "700",
   },
   titleText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#000",
+    flex: 1,
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "800",
+    color: palette.ink,
+    marginHorizontal: spacing.sm,
+  },
+  locationPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 9,
+    borderRadius: radius.pill,
+    backgroundColor: palette.parchment,
   },
   locationText: {
-    fontSize: 14,
-    color: "#5a3d2b",
-    fontWeight: "500",
+    flexShrink: 1,
+    fontSize: 13,
+    color: palette.brown,
+    fontWeight: "700",
+    marginLeft: 5,
   },
 });

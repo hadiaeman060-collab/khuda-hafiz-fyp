@@ -163,7 +163,7 @@ export default function CateringScreen() {
 // Styles
 //
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   mainImage: {
     width: "100%",
     height: 260,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   pickerWrap: {
     borderWidth: 1,
     borderColor: "#d9d9d9",
-    borderRadius: 10,
+    borderRadius: 16,
     backgroundColor: "#fff",
     marginBottom: 10,
     overflow: "hidden",
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#d9d9d9",
-    borderRadius: 10,
+    borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,

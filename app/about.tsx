@@ -77,7 +77,7 @@ export default function About() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   contentContainer: { paddingBottom: 100 },
   headerSection: {
     paddingHorizontal: 20,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   cardSection: { paddingHorizontal: 16, marginTop: 20 },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 12,
     marginBottom: 12,
   },

@@ -91,7 +91,7 @@ export default function EmotionalSupportScreen() {
 // Styles
 //
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   mainImage: {
     width: "100%",
     height: 260,

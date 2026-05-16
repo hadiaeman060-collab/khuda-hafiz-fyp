@@ -9,13 +9,18 @@ import {
   Alert,
   Linking,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import * as Location from "expo-location";
-
-// ✅ Make sure this relative path matches where this file lives.
-// If your screen is app/(tabs)/graveyardSearch.tsx, use "../../src/utils/graveyardAPI"
-import { getCities, getGraveyardsByCity, getNearbyGraveyards } from "../src/utils/graveyardAPI";
+import { Ionicons } from "@expo/vector-icons";
+import TopBar from "../components/TopBar";
+import {
+  getCities,
+  getGraveyardsByCity,
+  getNearbyGraveyards,
+} from "../src/utils/graveyardAPI";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 type GraveyardApi = {
   _id: string;
@@ -23,30 +28,28 @@ type GraveyardApi = {
   address: string;
   city: string;
   contactNumber?: string;
-  location?: { type: "Point"; coordinates: [number, number] }; // [lng, lat]
+  location?: { type: "Point"; coordinates: [number, number] };
 };
 
-const BROWN = "#5a3d2b";
+const BROWN = palette.brown;
 
 export default function GraveyardSearchScreen() {
   const router = useRouter();
 
   const [loadingCities, setLoadingCities] = useState(true);
   const [loadingList, setLoadingList] = useState(false);
-
   const [cities, setCities] = useState<string[]>([]);
-  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [searchMode, setSearchMode] = useState<"city" | "nearby" | null>(null);
-  const [detectedPlace, setDetectedPlace] = useState<string>("");
-
+  const [detectedPlace, setDetectedPlace] = useState("");
   const [graveyards, setGraveyards] = useState<GraveyardApi[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
         setLoadingCities(true);
-        const cities = await getCities();
-        setCities(cities);
+        const cityList = await getCities();
+        setCities(cityList);
       } catch (err: any) {
         console.error(err);
         Alert.alert("Error", err.message || "Failed to load cities");
@@ -99,7 +102,10 @@ export default function GraveyardSearchScreen() {
 
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== "granted") {
-        Alert.alert("Permission required", "Allow location access to search nearby graveyards.");
+        Alert.alert(
+          "Permission required",
+          "Allow location access to search nearby graveyards."
+        );
         return;
       }
 
@@ -109,7 +115,10 @@ export default function GraveyardSearchScreen() {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
 
-      const places = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      const places = await Location.reverseGeocodeAsync({
+        latitude: lat,
+        longitude: lng,
+      });
       const place = places?.[0];
       const locationText =
         place?.city ||
@@ -119,7 +128,9 @@ export default function GraveyardSearchScreen() {
         "";
       setDetectedPlace(locationText);
 
-      const matchedCity = locationText ? resolveNearestKnownCity(locationText, cities) : undefined;
+      const matchedCity = locationText
+        ? resolveNearestKnownCity(locationText, cities)
+        : undefined;
       if (matchedCity) {
         const cityList = await getGraveyardsByCity(matchedCity);
         setSelectedCity(matchedCity);
@@ -177,234 +188,515 @@ export default function GraveyardSearchScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.replace("/")}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-        </View>
+        <TopBar
+          showBack
+          title="Search Graveyards"
+          onBackPress={() => router.back()}
+          onBellPress={() => router.push("/notifications" as any)}
+        />
 
-        <Text style={styles.heading}>{headingText}</Text>
-
-        <View style={styles.pickerCard}>
-          {loadingCities ? (
-            <View style={styles.rowCenter}>
-              <ActivityIndicator size="small" color={BROWN} />
-              <Text style={styles.pickerLoadingText}>Loading cities...</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
+          <LinearGradient
+            colors={["#2b1208", "#5a3d2b", "#b9824c"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <View style={styles.heroIcon}>
+              <Ionicons name="map" size={28} color={palette.gold} />
             </View>
-          ) : (
-            <Picker selectedValue={selectedCity} onValueChange={onSelectCity}>
-              <Picker.Item label="-- Select City --" value="" />
-              {cities.map((c) => (
-                <Picker.Item key={c} label={c} value={c} />
-              ))}
-            </Picker>
-          )}
-        </View>
+            <Text style={styles.heroKicker}>Burial locations</Text>
+            <Text style={styles.heroTitle}>
+              Find an available graveyard near your family.
+            </Text>
+            <Text style={styles.heroText}>
+              Search by city or use your current location to discover active
+              graveyards with contact and map details.
+            </Text>
 
-        <View style={styles.nearbyWrap}>
-          <TouchableOpacity style={styles.nearbyBtn} onPress={onSearchNearby}>
-            <Text style={styles.nearbyBtnText}>Search Nearby</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={styles.heroStats}>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{cities.length}</Text>
+                <Text style={styles.statLabel}>Cities</Text>
+              </View>
+              <View style={styles.statPill}>
+                <Text style={styles.statValue}>{graveyards.length}</Text>
+                <Text style={styles.statLabel}>Results</Text>
+              </View>
+            </View>
+          </LinearGradient>
 
-        {loadingList ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={BROWN} />
-            <Text style={styles.loadingText}>Fetching graveyards...</Text>
+          <View style={styles.searchPanel}>
+            <View style={styles.panelHeader}>
+              <View style={styles.panelCopy}>
+                <Text style={styles.panelTitle}>{headingText}</Text>
+                <Text style={styles.panelSubtitle}>
+                  Choose a city or scan nearby graveyards.
+                </Text>
+              </View>
+              <View style={styles.panelBadge}>
+                <Ionicons name="location" size={16} color={palette.brown} />
+              </View>
+            </View>
+
+            <View style={styles.pickerCard}>
+              {loadingCities ? (
+                <View style={styles.rowCenter}>
+                  <ActivityIndicator size="small" color={BROWN} />
+                  <Text style={styles.pickerLoadingText}>Loading cities...</Text>
+                </View>
+              ) : (
+                <Picker selectedValue={selectedCity} onValueChange={onSelectCity}>
+                  <Picker.Item label="-- Select City --" value="" />
+                  {cities.map((c) => (
+                    <Picker.Item key={c} label={c} value={c} />
+                  ))}
+                </Picker>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.nearbyBtn} onPress={onSearchNearby}>
+              <Ionicons name="navigate" size={17} color={palette.white} />
+              <Text style={styles.nearbyBtnText}>Search Nearby</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {searchMode === null && !selectedCity ? (
-              <Text style={styles.noResult}>Please select a city to see available graveyards.</Text>
-            ) : graveyards.length === 0 && searchMode === "nearby" ? (
-              <Text style={styles.noResult}>No nearby graveyards found for your current location.</Text>
-            ) : graveyards.length === 0 ? (
-              <Text style={styles.noResult}>No active graveyards found in {selectedCity}.</Text>
-            ) : (
-              graveyards.map((g) => {
+
+          {loadingList ? (
+            <View style={styles.stateCard}>
+              <ActivityIndicator size="large" color={BROWN} />
+              <Text style={styles.loadingText}>Fetching graveyards...</Text>
+              <Text style={styles.stateHint}>
+                Checking active records and location data.
+              </Text>
+            </View>
+          ) : searchMode === null && !selectedCity ? (
+            <EmptyState
+              icon="search"
+              title="Start with a city"
+              message="Select a city above to see available graveyards, or use nearby search for location-based results."
+            />
+          ) : graveyards.length === 0 && searchMode === "nearby" ? (
+            <EmptyState
+              icon="navigate-circle"
+              title="No nearby graveyards found"
+              message="Try selecting your city manually, or increase coverage from the backend nearby search settings."
+            />
+          ) : graveyards.length === 0 ? (
+            <EmptyState
+              icon="map-outline"
+              title={`No active graveyards in ${selectedCity}`}
+              message="There are no active graveyards listed for this city yet."
+            />
+          ) : (
+            <View style={styles.resultsWrap}>
+              <View style={styles.resultsHeader}>
+                <Text style={styles.resultsTitle}>Available Graveyards</Text>
+                <Text style={styles.resultsCount}>{graveyards.length} found</Text>
+              </View>
+
+              {graveyards.map((g) => {
                 const coords = g.location?.coordinates;
                 const lat = coords?.[1];
                 const lng = coords?.[0];
 
                 return (
                   <View key={g._id} style={styles.card}>
-                    <Text style={styles.name}>{g.name}</Text>
-                    <Text style={styles.address}>{g.address}</Text>
+                    <View style={styles.cardTop}>
+                      <View style={styles.cardIcon}>
+                        <Ionicons name="leaf" size={20} color={palette.bronze} />
+                      </View>
+                      <View style={styles.cardTitleWrap}>
+                        <Text style={styles.name}>{g.name}</Text>
+                        <Text style={styles.address}>{g.address}</Text>
+                      </View>
+                    </View>
 
-                    <Text style={styles.meta}>
-                      City: <Text style={styles.metaStrong}>{g.city}</Text>
-                    </Text>
+                    <View style={styles.metaGrid}>
+                      <InfoPill icon="business" label="City" value={g.city} />
+                      <InfoPill
+                        icon="call"
+                        label="Contact"
+                        value={g.contactNumber || "Not available"}
+                      />
+                    </View>
 
-                    {typeof lat === "number" && typeof lng === "number" ? (
-                      <Text style={styles.meta}>
-                        Location:{" "}
-                        <Text style={styles.metaStrong}>
-                          {lat.toFixed(6)}, {lng.toFixed(6)}
-                        </Text>
+                    <View style={styles.locationStrip}>
+                      <Ionicons name="pin" size={15} color={palette.brown} />
+                      <Text style={styles.locationText}>
+                        {typeof lat === "number" && typeof lng === "number"
+                          ? `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+                          : "Location coordinates not available"}
                       </Text>
-                    ) : (
-                      <Text style={styles.meta}>Location: Not available</Text>
-                    )}
-
-                    <Text style={styles.meta}>
-                      Contact: <Text style={styles.metaStrong}>{g.contactNumber || "Not available"}</Text>
-                    </Text>
+                    </View>
 
                     <View style={styles.actions}>
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleCall(g.contactNumber)}>
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => handleCall(g.contactNumber)}
+                      >
+                        <Ionicons name="call" size={15} color={palette.brown} />
                         <Text style={styles.actionText}>Call</Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecond]} onPress={() => handleOpenMap(g)}>
-                        <Text style={styles.actionText}>Open Map</Text>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnPrimary]}
+                        onPress={() => handleOpenMap(g)}
+                      >
+                        <Ionicons name="map" size={15} color={palette.white} />
+                        <Text style={styles.actionTextPrimary}>Open Map</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 );
-              })
-            )}
-          </ScrollView>
-        )}
+              })}
+            </View>
+          )}
+        </ScrollView>
       </View>
     </>
   );
 }
+
+type EmptyStateProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  message: string;
+};
+
+const EmptyState = ({ icon, title, message }: EmptyStateProps) => (
+  <View style={styles.stateCard}>
+    <View style={styles.emptyIcon}>
+      <Ionicons name={icon} size={28} color={palette.bronze} />
+    </View>
+    <Text style={styles.emptyTitle}>{title}</Text>
+    <Text style={styles.emptyMessage}>{message}</Text>
+  </View>
+);
+
+type InfoPillProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+};
+
+const InfoPill = ({ icon, label, value }: InfoPillProps) => (
+  <View style={styles.infoPill}>
+    <Ionicons name={icon} size={14} color={palette.brown} />
+    <View style={styles.infoTextWrap}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-
-  topBar: {
-    paddingHorizontal: 15,
-    paddingVertical: 12,
+  container: { flex: 1, backgroundColor: palette.cream },
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
   },
-
-  backText: {
-    fontSize: 16,
-    color: BROWN,
-    fontWeight: "600",
-  },
-
-  heading: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: BROWN,
-    marginHorizontal: 15,
-    marginBottom: 10,
-  },
-
-  pickerCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginHorizontal: 15,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: "#eee",
+  hero: {
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
     overflow: "hidden",
+    ...shadow.medium,
   },
-
-  rowCenter: { flexDirection: "row", alignItems: "center", padding: 12 },
-  pickerLoadingText: { marginLeft: 10, color: "#666" },
-
-  nearbyWrap: {
-    marginHorizontal: 15,
-    marginBottom: 6,
-    alignItems: "flex-start",
-  },
-
-  nearbyBtn: {
+  heroIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: BROWN,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    backgroundColor: "#fff",
+    borderColor: "rgba(255,255,255,0.2)",
   },
-
-  nearbyBtnText: {
-    color: BROWN,
-    fontWeight: "600",
+  heroKicker: {
+    color: palette.gold,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  heroTitle: {
+    color: palette.white,
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: "900",
+  },
+  heroText: {
+    color: "#f7efe4",
     fontSize: 13,
+    lineHeight: 20,
+    marginTop: spacing.sm,
   },
-
-  center: {
+  heroStats: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  statPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  statValue: {
+    color: palette.white,
+    fontSize: 15,
+    fontWeight: "900",
+    marginRight: 6,
+  },
+  statLabel: {
+    color: "#f7efe4",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  searchPanel: {
+    backgroundColor: palette.white,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    marginBottom: spacing.lg,
+    ...shadow.soft,
+  },
+  panelHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: spacing.md,
+  },
+  panelCopy: {
     flex: 1,
+    paddingRight: spacing.sm,
+  },
+  panelTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: palette.ink,
+  },
+  panelSubtitle: {
+    fontSize: 12,
+    color: palette.muted,
+    marginTop: 4,
+  },
+  panelBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: palette.parchment,
     alignItems: "center",
     justifyContent: "center",
   },
-
+  pickerCard: {
+    backgroundColor: palette.cream,
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    overflow: "hidden",
+  },
+  rowCenter: { flexDirection: "row", alignItems: "center", padding: 12 },
+  pickerLoadingText: { marginLeft: 10, color: palette.muted },
+  nearbyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    paddingVertical: 13,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: palette.mahogany,
+    ...shadow.glow,
+  },
+  nearbyBtnText: {
+    color: palette.white,
+    fontWeight: "900",
+    fontSize: 14,
+    marginLeft: 8,
+  },
   loadingText: {
     marginTop: 12,
-    fontSize: 14,
-    color: "#666",
-  },
-
-  noResult: {
-    textAlign: "center",
-    marginTop: 30,
-    color: "#777",
-    marginHorizontal: 20,
-  },
-
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    marginHorizontal: 15,
-    marginVertical: 8,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-  },
-
-  name: {
     fontSize: 15,
-    fontWeight: "600",
+    color: palette.ink,
+    fontWeight: "800",
+  },
+  stateHint: {
+    color: palette.muted,
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  stateCard: {
+    alignItems: "center",
+    backgroundColor: palette.white,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
+  },
+  emptyIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: palette.parchment,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: palette.ink,
+    textAlign: "center",
+  },
+  emptyMessage: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: palette.muted,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  resultsWrap: {
+    gap: spacing.sm,
+  },
+  resultsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  resultsTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: palette.ink,
+  },
+  resultsCount: {
+    color: palette.bronze,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  card: {
+    backgroundColor: palette.white,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
+  },
+  cardTop: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  cardIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    backgroundColor: palette.parchment,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.md,
+  },
+  cardTitleWrap: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: "900",
     color: BROWN,
   },
-
   address: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 13,
+    color: palette.muted,
     marginTop: 4,
+    lineHeight: 18,
   },
-
-  meta: {
+  metaGrid: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  infoPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: palette.cream,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+  },
+  infoTextWrap: {
+    marginLeft: 7,
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 10,
+    color: palette.faint,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  infoValue: {
     fontSize: 12,
-    color: "#777",
-    marginTop: 6,
+    color: palette.ink,
+    fontWeight: "800",
+    marginTop: 2,
   },
-
-  metaStrong: {
-    color: "#333",
-    fontWeight: "600",
+  locationStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: palette.parchment,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
   },
-
+  locationText: {
+    flex: 1,
+    color: palette.muted,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 7,
+  },
   actions: {
     flexDirection: "row",
-    justifyContent: "flex-start",
-    marginTop: 12,
-    gap: 10,
+    marginTop: spacing.md,
+    gap: spacing.sm,
   },
-
   actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: BROWN,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 18,
+    borderRadius: radius.pill,
+    paddingVertical: 11,
   },
-
-  actionBtnSecond: {
-    // same style, just keeps spacing consistent
+  actionBtnPrimary: {
+    backgroundColor: palette.mahogany,
+    borderColor: palette.mahogany,
   },
-
   actionText: {
-    fontSize: 12,
+    fontSize: 13,
     color: BROWN,
-    fontWeight: "600",
+    fontWeight: "900",
+    marginLeft: 6,
+  },
+  actionTextPrimary: {
+    fontSize: 13,
+    color: palette.white,
+    fontWeight: "900",
+    marginLeft: 6,
   },
 });
