@@ -1,116 +1,175 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TouchableOpacity,
   Text,
   TextInput,
-  TouchableOpacity,
-  ScrollView,
-  StyleSheet,
-  ActivityIndicator,
+  View,
+  
 } from "react-native";
-import axios from "axios";
+import { useNavigation } from "@react-navigation/native";
+import { sendChatMessage } from "../src/utils/chatAPI";
+import { router } from "expo-router";
+import { useAuth } from "./context/AuthContext";
 import TopBar from "../components/TopBar";
 
-type Message = {
-  sender: "user" | "bot";
-  text: string;
-};
+function uid() {
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
-export default function Chatbot() {
+type Role = "user" | "model" | "system";
+type Message = { id: string; role: Role; text: string };
+
+export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      sender: "bot",
-      text: "Assalamu Alaikum! I'm your Khuda Hafiz AI assistant. How can I help you today?",
-    },
+    { id: uid(), role: "system", text: "Assalamu Alaikum. Welcome to Khuda Hafiz.\nWe are here to support you during this difficult time and assist with respectful funeral arrangements.\nالسلام علیکم۔ خدا حافظ میں خوش آمدید۔ ہم اس مشکل وقت میں آپ کی مکمل رہنمائی کے لیے موجود ہیں۔ براہِ کرم بتائیں ہم آپ کی کس طرح مدد کر سکتے ہیں؟" },
   ]);
-  const [inputText, setInputText] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const listRef = useRef<FlatList<Message> | null>(null);
+  const navigation = useNavigation<any>();
+  const { user } = useAuth();
 
-  const handleSend = async () => {
-    if (!inputText.trim()) return;
+ const toHistory = (msgs: Message[]): { role: "user" | "model"; text: string }[] =>
+  msgs
+    .filter((m) => m.role === "user" || m.role === "model")
+    .map((m) => ({ role: m.role as "user" | "model", text: m.text }));
 
-    const newMessage: Message = { sender: "user", text: inputText };
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
-    setInputText("");
+  const onSend = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    setInput("");
+    const userMsg: Message = { id: uid(), role: "user", text };
+    const nextMsgs = [...messages, userMsg];
+    setMessages(nextMsgs);
     setLoading(true);
 
     try {
-      // 🔹 Send message to your backend
-      const response = await axios.post(
-        "http://10.120.172.62:3000/chat", // ← Your backend IP
-        { messages: updatedMessages }
-      );
-
-      const botReply: string = response.data.reply;
-
-      setMessages((prev) => [...prev, { sender: "bot", text: botReply }]);
-    } catch (error) {
-      console.error("Backend error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: "Sorry, something went wrong. Please try again later.",
-        },
-      ]);
+      const reply = await sendChatMessage(text, toHistory(messages), user?.uid);
+      const botMsg: Message = { id: uid(), role: "model", text: reply };
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (e: unknown) {
+      const errText = e instanceof Error ? e.message : String(e);
+      const errMsg: Message = { id: uid(), role: "model", text: `⚠️ ${errText}` };
+      setMessages((prev) => [...prev, errMsg]);
     } finally {
       setLoading(false);
+      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 50);
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <TopBar title="AI Chatbot" />
-      <ScrollView
-        style={styles.chatContainer}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        {messages.map((msg, index) => (
-          <View
-            key={index}
-            style={[
-              styles.message,
-              msg.sender === "user" ? styles.userMsg : styles.botMsg,
-            ]}
-          >
-            <Text style={styles.msgText}>{msg.text}</Text>
-          </View>
-        ))}
-        {loading && <ActivityIndicator size="small" color="#000" />}
-      </ScrollView>
+  const renderItem = ({ item }: { item: Message }) => (
+    <View
+      style={[
+        styles.bubble,
+        item.role === "user" ? styles.userBubble : styles.botBubble,
+      ]}
+    >
+      <Text style={styles.bubbleText}>{item.text}</Text>
+    </View>
+  );
 
-      <View style={styles.inputContainer}>
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.select({ ios: 100, android: 80 })}
+    >
+      <TopBar showBack title="Support Chat" onBackPress={() => router.replace("/")} />
+      <FlatList
+        ref={listRef}
+        data={messages}
+        keyExtractor={(m) => m.id}
+        contentContainerStyle={styles.list}
+        renderItem={renderItem}
+        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          loading ? (
+            <View style={[styles.bubble, styles.botBubble, styles.typing]}>
+              <ActivityIndicator />
+              <Text style={{ marginLeft: 10 }}>Thinking…</Text>
+            </View>
+          ) : null
+        }
+      />
+
+      <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
-          placeholder="Type your message..."
-          value={inputText}
-          onChangeText={setInputText}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Type your message…"
+          multiline
+          onFocus={() => setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 120)}
+          blurOnSubmit={false}
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-          <Text style={styles.sendText}>Send</Text>
-        </TouchableOpacity>
+        <Pressable style={styles.sendBtn} onPress={onSend} disabled={loading}>
+          <Text style={styles.sendBtnText}>Send</Text>
+        </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  chatContainer: { flex: 1, padding: 15 },
-  message: { marginVertical: 6, padding: 12, borderRadius: 10, maxWidth: "80%" },
-  userMsg: { backgroundColor: "#DCF8C6", alignSelf: "flex-end" },
-  botMsg: { backgroundColor: "#F0F0F0", alignSelf: "flex-start" },
-  msgText: { fontSize: 16 },
-  inputContainer: {
+  container: { flex: 1, backgroundColor: "#f6f2ee" },
+  header: {
     flexDirection: "row",
-    padding: 10,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderColor: "#ddd",
     alignItems: "center",
+    padding: 0,
   },
-  input: { flex: 1, height: 45, borderWidth: 1, borderColor: "#ccc", borderRadius: 25, paddingHorizontal: 15 },
-  sendBtn: { backgroundColor: "#e57e1eff", marginLeft: 8, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 25 },
-  sendText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  backBtn: { padding: 6 },
+  backText: { fontSize: 16, color: "#111" },
+  list: { padding: 12, paddingBottom: 140 },
+  bubble: {
+    maxWidth: "85%",
+    padding: 14,
+    borderRadius: 16,
+    marginVertical: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  userBubble: { alignSelf: "flex-end", backgroundColor: "#e7d4bb" },
+  botBubble: { alignSelf: "flex-start", backgroundColor: "#ffffff", borderWidth: 0.5, borderColor: "#efe7df" },
+  bubbleText: { fontSize: 16, lineHeight: 22 },
+  typing: { flexDirection: "row", alignItems: "center" },
+  inputRow: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 18,
+    borderTopWidth: 1,
+    borderColor: "#eee",
+    alignItems: "flex-end",
+    backgroundColor: "transparent",
+  },
+  input: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 130,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  sendBtn: {
+    marginLeft: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: "#111",
+  },
+  sendBtnText: { color: "#fff", fontWeight: "600" },
 });

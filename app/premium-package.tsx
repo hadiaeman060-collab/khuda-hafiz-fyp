@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,270 +8,165 @@ import {
   ScrollView,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import TopBar from "../components/TopBar";
+import BottomNavBar from "../components/BottomNavBar";
+import { getPackages, Service } from "../utils/servicesAPI";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
-export default function BasicPackageScreen() {
+export default function PremiumPackageScreen() {
   const router = useRouter();
+  const [items, setItems] = useState<Service[]>([]);
+
+  // Fetch Premium Package items from backend
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const packages = await getPackages();
+        const premiumPackage = packages.find((p) => p.type === "premium");
+        if (premiumPackage) setItems(premiumPackage.items);
+      } catch (err) {
+        console.error("Error fetching premium package:", err);
+      }
+    };
+    fetchItems();
+  }, []);
+
+  const handleBook = () => {
+    router.push({
+      pathname: "/order-details",
+      params: {
+        packageName: "Premium Package",
+        items: JSON.stringify(items.map((item) => ({ name: item.name, price: item.price }))),
+      },
+    });
+  };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Image
-                source={require("../assets/icons/back.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Image
-                source={require("../assets/icons/bell.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-          </View>
+        <TopBar showBack title="Packages" onBackPress={() => router.back()} />
 
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {/* Tabs */}
           <View style={styles.tabs}>
-            <TouchableOpacity
-              onPress={() => router.push("/basic-package")}
-            >
+            <TouchableOpacity onPress={() => router.push("/basic-package")}>
               <Text style={styles.tab}>Basic</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/standard-package")}
-            >
+            <TouchableOpacity onPress={() => router.push("/standard-package")}>
               <Text style={styles.tab}>Standard</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/premium-package")}
-            >
+            <TouchableOpacity>
               <Text style={[styles.tab, styles.activeTab]}>Premium</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => router.push("/customize-package")}
-            >
+            <TouchableOpacity onPress={() => router.push("/customize-package")}>
               <Text style={styles.tab}>Customize</Text>
             </TouchableOpacity>
           </View>
 
           {/* Package Items */}
-          <View style={styles.packageCard}>
-            <View style={styles.cardRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.packageTitle}>Flowers</Text>
-              <Text style={styles.packagePrice}>Rs. 1000</Text>
+          {items.map((item) => (
+            <View key={item._id} style={styles.packageCard}>
+              <View style={styles.cardRow}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.packageTitle}>{item.name}</Text>
+                <Text style={styles.packagePrice}>
+                  Rs {item.price.toLocaleString()}
+                </Text>
+              </View>
+              <Text style={styles.packageDesc}>{item.desc}</Text>
             </View>
-            <Text style={styles.packageDesc}>Fresh Sympathy Flowers</Text>
+          ))}
+          {/* Total Amount */}
+          <View style={styles.totalCard}>
+            <Text style={styles.totalLabel}>Total Amount</Text>
+            <Text style={styles.totalPrice}>
+              Rs{" "}
+              {items
+                .reduce((sum, item) => sum + item.price, 0)
+                .toLocaleString()}
+            </Text>
           </View>
-
-          <View style={styles.packageCard}>
-            <View style={styles.cardRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.packageTitle}>Kafan</Text>
-              <Text style={styles.packagePrice}>Rs. 4000</Text>
-            </View>
-            <Text style={styles.packageDesc}>100% Pure White Cotton</Text>
-          </View>
-
-          <View style={styles.packageCard}>
-            <View style={styles.cardRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.packageTitle}>Tombstone</Text>
-              <Text style={styles.packagePrice}>Rs. 10,000</Text>
-            </View>
-            <Text style={styles.packageDesc}>Tombstone with Inscription</Text>
-          </View>
-
-<View style={styles.packageCard}>
-            <View style={styles.cardRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.packageTitle}>Grave</Text>
-              <Text style={styles.packagePrice}>Rs. 40,000</Text>
-            </View>
-            <Text style={styles.packageDesc}>Grave Digging and Setup</Text>
-          </View>
-
-          <View style={styles.packageCard}>
-            <View style={styles.cardRow}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.packageTitle}>Catering</Text>
-              <Text style={styles.packagePrice}>Rs. 120,000</Text>
-            </View>
-            <Text style={styles.packageDesc}>Meals Arranged with Care</Text>
-          </View>
-
-          {/* Buy Now Button */}
-          <TouchableOpacity
-  style={styles.buyButton}
-  onPress={() =>
-    router.push({
-      pathname: "/order-details",
-      params: {
-        packageName: "Premium Package",
-        items: JSON.stringify([
-          { name: "Kafan", price: 6000 },
-          { name: "Flowers", price: 2000 },
-          { name: "Grave", price: 60000 },
-          { name: "Tombstone", price: 10000 },
-          { name: "Catering", price: 150000 },
-        ]),
-      },
-    })
-  }
->
-  <Text style={styles.buyButtonText}>Buy Now</Text>
-</TouchableOpacity>
-
+          <TouchableOpacity style={styles.buyButton} onPress={handleBook}>
+            <Text style={styles.buyButtonText}>Buy Now</Text>
+          </TouchableOpacity>
         </ScrollView>
 
-        {/* Bottom Navbar */}
-        <View style={styles.navbar}>
-          <NavItem
-            label="Home"
-            icon={require("../assets/icons/home.png")}
-            onPress={() => router.push("/home")}
-          />
-          <NavItem
-            label="Packages"
-            icon={require("../assets/icons/packages.png")}
-            active
-            onPress={() => router.push("/basic-package")}
-          />
-
-          {/* Floating Call Button */}
-          <TouchableOpacity style={styles.callButton}>
-            <Image
-              source={require("../assets/icons/call.png")}
-              style={styles.callIcon}
-            />
-          </TouchableOpacity>
-
-          <NavItem
-            label="Contact"
-            icon={require("../assets/icons/contact.png")}
-          />
-          <NavItem
-            label="Message"
-            icon={require("../assets/icons/message.png")}
-          />
-        </View>
+        <BottomNavBar activeTab="Packages" />
       </View>
     </>
   );
 }
 
-//
-// Reusable Nav Item
-//
-type NavItemProps = {
-  label: string;
-  icon: any;
-  active?: boolean;
-  onPress?: () => void;
-};
-
-const NavItem = ({ label, icon, active, onPress }: NavItemProps) => (
-  <TouchableOpacity style={styles.navItem} onPress={onPress}>
-    <Image
-      source={icon}
-      style={[styles.navIcon, active && styles.activeIcon]}
-    />
-    <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
-  </TouchableOpacity>
-);
-
-//
-// Styles
-//
-const BROWN = "#5a3d2b";
+const BROWN = palette.brown;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  topIcon: { width: 26, height: 26, tintColor: BROWN },
+  container: { flex: 1, backgroundColor: palette.cream },
+  scrollContent: { paddingBottom: 112 },
   tabs: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 10,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
+    margin: spacing.md,
+    padding: 5,
+    borderRadius: radius.pill,
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
   tab: {
-    fontSize: 14,
-    color: "#777",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "#f4f4f4",
+    fontSize: 12,
+    color: palette.muted,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    fontWeight: "800",
   },
-  activeTab: { backgroundColor: BROWN, color: "#fff", fontWeight: "600" },
+  activeTab: { backgroundColor: BROWN, color: "#fff", fontWeight: "900" },
   packageCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: palette.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     marginHorizontal: 15,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
   cardRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   bullet: { fontSize: 18, color: BROWN, marginRight: 6, marginTop: -2 },
   packageTitle: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "800",
     color: BROWN,
   },
   packagePrice: { fontSize: 16, fontWeight: "700", color: BROWN },
-  packageDesc: { fontSize: 12, color: "#666", marginLeft: 20 },
+  packageDesc: { fontSize: 12, color: palette.muted, marginLeft: 20, lineHeight: 18 },
+  totalCard: {
+    backgroundColor: palette.parchment,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginHorizontal: 15,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: palette.sand,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  totalLabel: { fontSize: 15, fontWeight: "800", color: BROWN },
+  totalPrice: { fontSize: 17, fontWeight: "900", color: BROWN },
   buyButton: {
-    backgroundColor: BROWN,
+    backgroundColor: palette.mahogany,
     margin: 20,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.pill,
     alignItems: "center",
+    ...shadow.glow,
   },
-  buyButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  navbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  navItem: { alignItems: "center" },
-  navIcon: { width: 22, height: 22, marginBottom: 2 },
-  navLabel: { fontSize: 10 },
-  activeIcon: { tintColor: BROWN },
-  activeLabel: { color: BROWN, fontWeight: "600" },
-  callButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -30,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  callIcon: { width: 28, height: 28, tintColor: BROWN },
+  buyButtonText: { color: "#fff", fontSize: 16, fontWeight: "900" },
 });

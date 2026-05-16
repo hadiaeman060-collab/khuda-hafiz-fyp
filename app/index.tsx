@@ -34,10 +34,11 @@ export default function SplashScreen() {
 
   return (
     <LinearGradient
-      colors={["#0d0b0a", "#3c1a06", "#5b2508"]}
+      colors={["#160804", "#3c1a06", "#8b5a32"]}
       style={styles.container}
     >
-      <Text style={styles.title}>Welcome{"\n"}To{"\n"}Khuda Hafiz</Text>
+      <Text style={styles.kicker}>Compassion, care, clarity</Text>
+      <Text style={styles.title}>Khuda Hafiz</Text>
 
       <Animated.View
         style={[
@@ -77,23 +78,32 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 42,
+    fontWeight: "900",
     textAlign: "center",
     color: "#fff",
-    marginBottom: 40,
-    lineHeight: 34,
+    marginBottom: 28,
+    lineHeight: 48,
+  },
+  kicker: {
+    color: "#f3d390",
+    fontSize: 13,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    marginBottom: 10,
   },
   logoCircle: {
     width: CIRCLE_SIZE,
     height: CIRCLE_SIZE,
     borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: "#1a0a04",
+    backgroundColor: "rgba(255,255,255,0.1)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 30,
     overflow: "hidden",
     backfaceVisibility: "hidden", // prevents mirror showing
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
   },
   logo: {
     width: "100%",
@@ -108,14 +118,14 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    backgroundColor: "#2b0e05",
+    backgroundColor: "#fff8ef",
     paddingVertical: 14,
     paddingHorizontal: 50,
-    borderRadius: 12,
+    borderRadius: 999,
   },
   buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#3c1a06",
+    fontWeight: "900",
     fontSize: 16,
   },
 });

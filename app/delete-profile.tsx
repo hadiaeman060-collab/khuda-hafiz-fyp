@@ -58,7 +58,7 @@ export default function DeleteProfile() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   // increase top spacing so the content sits lower on the screen
   content: { padding: 20, paddingTop: 40 },
   title: {

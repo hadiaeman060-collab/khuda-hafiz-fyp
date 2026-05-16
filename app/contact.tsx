@@ -23,9 +23,10 @@ export default function ContactScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Top Bar */}
           <TopBar
-            showBack={false}
-            onBellPress={() => alert("No new notifications")}
-            onBackPress={() => alert("Open menu")}
+            showBack
+            title="Contact"
+            onBellPress={() => router.push("/notifications" as any)}
+            onBackPress={() => router.back()}
           />
 
           {/* Title */}
@@ -77,7 +78,7 @@ export default function ContactScreen() {
           </View>
 
           <View style={styles.socialRow}>
-            <AntDesign name="linkedin-square" size={32} color="#0077B5" style={styles.socialIcon} />
+            <FontAwesome name="linkedin-square" size={32} color="#0077B5" style={styles.socialIcon} />
             <View>
               <Text style={styles.socialTitle}>Khudahafiz.co</Text>
               <Text style={styles.socialDesc}>
@@ -105,14 +106,7 @@ export default function ContactScreen() {
         </ScrollView>
 
         {/* Bottom Navigation */}
-        <BottomNavBar
-          activeTab="Contact"
-          onHomePress={() => router.push("/home")}
-          onPackagesPress={() => router.push("/basic-package")}
-          onContactPress={() => router.push("/contact")}
-          onMessagePress={() => router.push("/chatbot")}
-          onCallPress={() => alert("Calling Khuda Hafiz...")}
-        />
+        <BottomNavBar activeTab="Contact" />
       </View>
     </>
   );
@@ -121,7 +115,7 @@ export default function ContactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#fff8ef",
   },
   heading: {
     textAlign: "center",
@@ -192,7 +186,7 @@ const styles = StyleSheet.create({
   noteBox: {
     backgroundColor: "#f9f7f3",
     marginHorizontal: 25,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 14,
     marginTop: 10,
   },
@@ -204,7 +198,7 @@ const styles = StyleSheet.create({
   },
   helpButton: {
     backgroundColor: "#5a3d2b",
-    borderRadius: 10,
+    borderRadius: 999,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",

@@ -1,174 +1,276 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  Image,
   TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  TextInput,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { Stack, useRouter } from "expo-router";
-
-// ✅ Import global components
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
+import { getServices, Service } from "../utils/servicesAPI";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 export default function CustomizePackageScreen() {
   const router = useRouter();
 
-  const services = [
-    { id: 1, name: "Flowers", desc: "Fresh Sympathy Flowers", price: 1000 },
-    { id: 2, name: "Kafan", desc: "100% Pure White Cotton", price: 4000 },
-    { id: 3, name: "Tombstone", desc: "Tombstone with Inscription", price: 10000 },
-    { id: 4, name: "Grave", desc: "Grave Digging & Setup", price: 40000 },
-    { id: 5, name: "Catering", desc: "Meals Arranged with Care", price: 120000 },
-  ];
+  const [services, setServices] = useState<Service[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
 
-  const [selected, setSelected] = useState<number[]>([]);
+  const [cateringDishSelection, setCateringDishSelection] = useState<
+    "" | "dish1" | "dish2" | "both"
+  >("");
+  const [cateringPeopleInput, setCateringPeopleInput] = useState("");
 
-  const toggleSelect = (id: number) => {
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const data = await getServices();
+        setServices(data);
+      } catch (err) {
+        console.error("Failed to fetch services", err);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  const toggleSelect = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  const total = services
-    .filter((s) => selected.includes(s.id))
-    .reduce((sum, s) => sum + s.price, 0);
+  const cateringPeople = Number.parseInt(cateringPeopleInput, 10);
+  const validCateringPeople =
+    Number.isFinite(cateringPeople) && cateringPeople > 0 ? cateringPeople : 0;
+  const cateringPerPerson = cateringDishSelection === "both" ? 1000 : 500;
+
+  const isCateringService = (name: string) => /catering/i.test(name);
+  const cateringService = services.find((s) => isCateringService(s.name));
+  const isCateringSelected = !!(
+    cateringService && selected.includes(cateringService._id)
+  );
+
+  const cateringDishLabel =
+    cateringDishSelection === "dish1"
+      ? "2 Dishes & Roti"
+      : cateringDishSelection === "dish2"
+      ? "Rice, Chicken & Roti (Customizable)"
+      : cateringDishSelection === "both"
+      ? "Both Dishes"
+      : "";
 
   const selectedItems = services
-    .filter((s) => selected.includes(s.id))
-    .map((s) => ({ name: s.name, price: s.price }));
+    .filter((s) => selected.includes(s._id))
+    .map((s) => {
+      if (!isCateringService(s.name)) {
+        return {
+          name: s.name,
+          price: s.price,
+        };
+      }
+
+      const cateringTotal = validCateringPeople * cateringPerPerson;
+      const cateringName =
+        cateringDishLabel && validCateringPeople
+          ? `${s.name} - ${cateringDishLabel} (${validCateringPeople} people)`
+          : s.name;
+
+      return {
+        name: cateringName,
+        price: cateringTotal,
+      };
+    });
+
+  const total = selectedItems.reduce((sum, item) => sum + item.price, 0);
+
+  const handleBook = () => {
+    if (isCateringSelected) {
+      if (!cateringDishSelection) {
+        alert("Please select dishes for Catering.");
+        return;
+      }
+      if (!validCateringPeople) {
+        alert("Please enter valid number of people for Catering.");
+        return;
+      }
+    }
+
+    router.push({
+      pathname: "/order-details",
+      params: {
+        packageName: "Custom Package",
+        items: JSON.stringify(selectedItems),
+      },
+    });
+  };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        {/* ✅ Global TopBar */}
-        <TopBar />
+        <TopBar showBack onBackPress={() => router.back()} />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Tabs */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => router.push("/basic-package")}>
               <Text style={styles.tab}>Basic</Text>
             </TouchableOpacity>
+
             <TouchableOpacity onPress={() => router.push("/standard-package")}>
               <Text style={styles.tab}>Standard</Text>
             </TouchableOpacity>
+
             <TouchableOpacity onPress={() => router.push("/premium-package")}>
               <Text style={styles.tab}>Premium</Text>
             </TouchableOpacity>
+
             <TouchableOpacity>
               <Text style={[styles.tab, styles.activeTab]}>Customize</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Title */}
-          <View style={{ paddingHorizontal: 20, marginVertical: 10 }}>
-            <Text style={styles.title}>Make Your Own Package</Text>
-            <Text style={styles.subtitle}>
-              Build a personalized package with the services that matter most.
-            </Text>
-          </View>
+          {services.map((item) => {
+            const itemSelected = selected.includes(item._id);
+            const itemIsCatering = isCateringService(item.name);
+            const itemPrice = itemIsCatering
+              ? validCateringPeople * cateringPerPerson
+              : item.price;
 
-          {/* Package Options */}
-          {services.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.packageCard}
-              onPress={() => toggleSelect(item.id)}
-            >
-              <View style={styles.cardRow}>
-                <View
-                  style={[
-                    styles.radio,
-                    selected.includes(item.id) && styles.radioSelected,
-                  ]}
-                />
-                <Text style={styles.packageTitle}>{item.name}</Text>
-                <Text style={styles.packagePrice}>
-                  Rs. {item.price.toLocaleString()}
-                </Text>
+            return (
+              <View key={item._id} style={styles.packageCard}>
+                <TouchableOpacity
+                  onPress={() => toggleSelect(item._id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.cardRow}>
+                    <View
+                      style={[styles.radio, itemSelected && styles.radioSelected]}
+                    />
+                    <Text style={styles.packageTitle}>{item.name}</Text>
+                    <Text style={styles.packagePrice}>
+                      Rs {(itemSelected ? itemPrice : item.price).toLocaleString()}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <Text style={styles.packageDesc}>{item.desc}</Text>
+
+                {itemIsCatering && itemSelected ? (
+                  <View style={styles.expandWrap}>
+                    <Text style={styles.expandLabel}>Select Dishes</Text>
+                    <View style={styles.pickerWrap}>
+                      <Picker
+                        selectedValue={cateringDishSelection}
+                        onValueChange={(value) => setCateringDishSelection(value)}
+                      >
+                        <Picker.Item label="Select dish type" value="" />
+                        <Picker.Item label="2 Dishes & Roti" value="dish1" />
+                        <Picker.Item
+                          label="Rice, Chicken & Roti (Customizable)"
+                          value="dish2"
+                        />
+                        <Picker.Item label="Both Dishes" value="both" />
+                      </Picker>
+                    </View>
+
+                    <Text style={styles.expandLabel}>Number of People</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter number of people"
+                      keyboardType="number-pad"
+                      value={cateringPeopleInput}
+                      onChangeText={(text) =>
+                        setCateringPeopleInput(text.replace(/[^0-9]/g, ""))
+                      }
+                    />
+
+                    <Text style={styles.cateringTotal}>
+                      Catering Total: Rs {(validCateringPeople * cateringPerPerson).toLocaleString()}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
-              <Text style={styles.packageDesc}>{item.desc}</Text>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
 
-          {/* Total */}
           <View style={styles.totalCard}>
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalPrice}>Rs {total.toLocaleString()}</Text>
           </View>
 
-          {/* Buy Now */}
           <TouchableOpacity
-            style={styles.buyButton}
-            onPress={() =>
-              router.push({
-                pathname: "/order-details",
-                params: {
-                  packageName: "Custom Package",
-                  items: JSON.stringify(selectedItems),
-                },
-              })
-            }
+            style={[styles.buyButton, selected.length === 0 && { opacity: 0.5 }]}
+            disabled={selected.length === 0}
+            onPress={handleBook}
           >
-            <Text style={styles.buyButtonText}>Buy Now</Text>
+            <Text style={styles.buyButtonText}>Book Now</Text>
           </TouchableOpacity>
         </ScrollView>
 
-        {/* ✅ Global Bottom Nav */}
         <BottomNavBar />
       </View>
     </>
   );
 }
 
-const BROWN = "#5a3d2b";
+const BROWN = palette.brown;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: palette.cream },
+  scrollContent: { paddingBottom: 112 },
+
   tabs: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 10,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
+    margin: spacing.md,
+    padding: 5,
+    borderRadius: radius.pill,
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
+
   tab: {
-    fontSize: 14,
-    color: "#777",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "#f4f4f4",
+    fontSize: 12,
+    color: palette.muted,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    fontWeight: "800",
   },
+
   activeTab: {
     backgroundColor: BROWN,
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "900",
   },
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: BROWN,
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  subtitle: { fontSize: 13, color: "#666", textAlign: "center" },
+
   packageCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: palette.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     marginHorizontal: 15,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
-  cardRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+
   radio: {
     width: 18,
     height: 18,
@@ -177,29 +279,104 @@ const styles = StyleSheet.create({
     borderColor: BROWN,
     marginRight: 10,
   },
-  radioSelected: { backgroundColor: BROWN },
-  packageTitle: { flex: 1, fontSize: 14, fontWeight: "500", color: BROWN },
-  packagePrice: { fontSize: 16, fontWeight: "700", color: BROWN },
-  packageDesc: { fontSize: 12, color: "#666", marginLeft: 28 },
+
+  radioSelected: {
+    backgroundColor: BROWN,
+  },
+
+  packageTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "800",
+    color: BROWN,
+  },
+
+  packagePrice: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: BROWN,
+  },
+
+  packageDesc: {
+    fontSize: 12,
+    color: palette.muted,
+    marginLeft: 28,
+    lineHeight: 18,
+  },
+
+  expandWrap: {
+    marginTop: 10,
+    marginLeft: 28,
+  },
+
+  expandLabel: {
+    fontSize: 12,
+    color: palette.brown,
+    marginBottom: 6,
+    fontWeight: "800",
+  },
+
+  pickerWrap: {
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    marginBottom: 10,
+    overflow: "hidden",
+    backgroundColor: palette.cream,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    backgroundColor: palette.cream,
+  },
+
+  cateringTotal: {
+    fontSize: 13,
+    color: BROWN,
+    fontWeight: "700",
+  },
+
   totalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: palette.parchment,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     marginHorizontal: 15,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: palette.sand,
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  totalLabel: { fontSize: 15, fontWeight: "600", color: BROWN },
-  totalPrice: { fontSize: 16, fontWeight: "700", color: BROWN },
+
+  totalLabel: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: BROWN,
+  },
+
+  totalPrice: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: BROWN,
+  },
+
   buyButton: {
-    backgroundColor: BROWN,
+    backgroundColor: palette.mahogany,
     margin: 20,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.pill,
     alignItems: "center",
+    ...shadow.glow,
   },
-  buyButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+
+  buyButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "900",
+  },
 });

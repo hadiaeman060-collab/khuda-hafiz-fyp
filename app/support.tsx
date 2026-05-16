@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from "rea
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
-import FloatingCallButton from "../components/FloatingAgentButton";
+import FloatingSearchButton from "../components/FloatingSearchGraveButton";
 
 export default function EmotionalSupportScreen() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function EmotionalSupportScreen() {
 
       <View style={styles.container}>
         {/* Top Bar */}
-        <TopBar title="Emotional Support" onBackPress={() => router.back()} />
+        <TopBar showBack title="Emotional Support" onBackPress={() => router.back()} />
 
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Support Image */}
@@ -32,6 +32,7 @@ export default function EmotionalSupportScreen() {
 
           {/* Support Details */}
           <Text style={styles.title}>{service.name}</Text>
+          <Text style={styles.price}>Price: Rs {service.price.toLocaleString()}</Text>
           <Text style={styles.desc}>{service.desc}</Text>
 
           {/* Support Options */}
@@ -77,7 +78,7 @@ export default function EmotionalSupportScreen() {
         </ScrollView>
 
         {/* Floating Call Button */}
-        <FloatingCallButton />
+        <FloatingSearchButton />
 
         {/* Bottom Nav Bar */}
         <BottomNavBar activeTab="Packages" />
@@ -90,7 +91,7 @@ export default function EmotionalSupportScreen() {
 // Styles
 //
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   mainImage: {
     width: "100%",
     height: 260,
@@ -100,8 +101,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginHorizontal: 15,
-    marginBottom: 10,
+    marginBottom: 6,
     color: "#000",
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#5a3d2b",
+    marginHorizontal: 15,
+    marginBottom: 10,
   },
   desc: {
     fontSize: 14,
@@ -142,3 +150,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
+

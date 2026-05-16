@@ -1,5 +1,6 @@
 import { Stack, useSegments, useRouter } from "expo-router";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 
@@ -12,7 +13,14 @@ function AuthGuard() {
     if (loading) return;
     const first = segments[0] || "";
     // only allow access to these public pages when not authenticated
-    const publicPages = ["login", "signup", ""]; // root, login, signup
+    const publicPages = [
+      "login",
+      "signup",
+      "forgot-password",
+      "verify-email",
+      "verify-login",
+      "",
+    ]; // root, login, signup, forgot-password, verify-email, verify-login
 
     if (!isAuthenticated && !publicPages.includes(first)) {
       // user not authenticated and trying to access protected page -> send to login
@@ -45,10 +53,12 @@ function AuthGuard() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <AuthGuard />
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* All screens will inherit headerShown: false */}
-      </Stack>
+      <NotificationProvider>
+        <AuthGuard />
+        <Stack screenOptions={{ headerShown: false }}>
+          {/* All screens will inherit headerShown: false */}
+        </Stack>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

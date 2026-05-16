@@ -1,15 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { API_URL } from "../../utils/config";
 import {
   getToken,
   saveToken,
   clearTokens,
   logout as backendLogout,
-} from "../utils/auth";
+} from "../../utils/auth";
 
-const BACKEND_URL = "http://192.168.18.23:3000"; // update for your dev machine
+const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 
-type User = { uid?: string; email?: string; displayName?: string } | null;
+type User = {
+  uid?: string;
+  email?: string;
+  displayName?: string;
+  phoneNumber?: string;
+} | null;
 
 type AuthContextType = {
   isAuthenticated: boolean;
@@ -71,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Use the centralized logout helper which attempts server revoke then clears storage
       try {
         await backendLogout();
-      } catch (e) {
+      } catch (e: any) {
         console.warn(
           "Server logout failed",
           e?.response?.data || e.message || e

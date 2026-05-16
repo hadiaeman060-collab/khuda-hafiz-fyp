@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { useAuth } from "../app/context/AuthContext";
 import { MaterialIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 type Props = {
   visible: boolean;
@@ -108,12 +109,13 @@ export default function MenuModal({ visible, onClose }: Props) {
         ]}
       >
         <View style={styles.profileCard}>
-          <Image
-            source={require("../assets/images/icon.png")}
-            style={styles.avatar}
-          />
-          <Text style={styles.profileName}>Fatima Nawaz</Text>
-          <Text style={styles.profileEmail}>fatima.nawaz@example.com</Text>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person" size={40} color={palette.bronze} />
+          </View>
+          <Text style={styles.profileName}>
+            {auth.user?.displayName || "Guest User"}
+          </Text>
+          <Text style={styles.profileEmail}>{auth.user?.email || ""}</Text>
         </View>
 
         <View style={styles.separator} />
@@ -124,7 +126,7 @@ export default function MenuModal({ visible, onClose }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <MenuItem
-            icon={<Ionicons name="person-outline" size={20} color="#3c1a06" />}
+            icon={<Ionicons name="person-outline" size={20} color={palette.mahogany} />}
             label="My Profile"
             onPress={() => {
               handleCloseFromOverlay();
@@ -137,7 +139,7 @@ export default function MenuModal({ visible, onClose }: Props) {
               <Ionicons
                 name="notifications-outline"
                 size={20}
-                color="#3c1a06"
+                color={palette.mahogany}
               />
             }
             label="Notifications"
@@ -152,7 +154,7 @@ export default function MenuModal({ visible, onClose }: Props) {
               <Ionicons
                 name="information-circle-outline"
                 size={20}
-                color="#3c1a06"
+                color={palette.mahogany}
               />
             }
             label="About us"
@@ -163,7 +165,7 @@ export default function MenuModal({ visible, onClose }: Props) {
           />
 
           <MenuItem
-            icon={<FontAwesome5 name="wallet" size={18} color="#3c1a06" />}
+            icon={<FontAwesome5 name="wallet" size={18} color={palette.mahogany} />}
             label="Wallet"
             onPress={() => {
               handleCloseFromOverlay();
@@ -173,7 +175,7 @@ export default function MenuModal({ visible, onClose }: Props) {
 
           <MenuItem
             icon={
-              <Ionicons name="settings-outline" size={20} color="#3c1a06" />
+              <Ionicons name="settings-outline" size={20} color={palette.mahogany} />
             }
             label="Settings"
             onPress={() => {
@@ -184,7 +186,7 @@ export default function MenuModal({ visible, onClose }: Props) {
 
           <MenuItem
             icon={
-              <Ionicons name="help-circle-outline" size={20} color="#3c1a06" />
+              <Ionicons name="help-circle-outline" size={20} color={palette.mahogany} />
             }
             label="Help"
             onPress={() => {
@@ -194,7 +196,7 @@ export default function MenuModal({ visible, onClose }: Props) {
           />
 
           <MenuItem
-            icon={<Ionicons name="call-outline" size={20} color="#3c1a06" />}
+            icon={<Ionicons name="call-outline" size={20} color={palette.mahogany} />}
             label="Toll Free Number"
             onPress={() => {
               handleCloseFromOverlay();
@@ -204,7 +206,7 @@ export default function MenuModal({ visible, onClose }: Props) {
 
           <MenuItem
             icon={
-              <Ionicons name="lock-closed-outline" size={20} color="#3c1a06" />
+              <Ionicons name="lock-closed-outline" size={20} color={palette.mahogany} />
             }
             label="Privacy Policy"
             onPress={() => {
@@ -215,7 +217,7 @@ export default function MenuModal({ visible, onClose }: Props) {
 
           <MenuItem
             icon={
-              <MaterialIcons name="description" size={20} color="#3c1a06" />
+              <MaterialIcons name="description" size={20} color={palette.mahogany} />
             }
             label="Terms & Conditions"
             onPress={() => {
@@ -226,9 +228,9 @@ export default function MenuModal({ visible, onClose }: Props) {
 
           <View style={styles.separatorSmall} />
           <MenuItem
-            icon={<Ionicons name="log-out-outline" size={20} color="#d9534f" />}
+            icon={<Ionicons name="log-out-outline" size={20} color={palette.danger} />}
             label="Log Out"
-            labelStyle={{ color: "#d9534f" }}
+            labelStyle={{ color: palette.danger }}
             onPress={async () => {
               // close the menu first
               handleCloseFromOverlay();
@@ -255,7 +257,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(33,24,20,0.38)",
   },
   modalContainer: {
     position: "absolute",
@@ -263,48 +265,61 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: 320,
-    backgroundColor: "#fff",
-    padding: 16,
-    // increase top padding so modal content sits a bit lower from the screen top
-    paddingTop: 50,
+    backgroundColor: palette.cream,
+    padding: spacing.lg,
+    paddingTop: 54,
+    borderTopRightRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+    ...shadow.medium,
   },
-  profileCard: { alignItems: "center", marginBottom: 8, paddingVertical: 12 },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#eee",
+  profileCard: {
+    alignItems: "center",
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.border,
+  },
+  avatarCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: palette.parchment,
     borderWidth: 2,
-    borderColor: "#fff",
+    borderColor: palette.gold,
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111",
+    fontSize: 17,
+    fontWeight: "800",
+    color: palette.ink,
     marginTop: 10,
   },
-  profileEmail: { fontSize: 13, color: "#777", marginTop: 4 },
-  separator: { height: 1, backgroundColor: "#EEE", marginVertical: 10 },
+  profileEmail: { fontSize: 13, color: palette.muted, marginTop: 4 },
+  separator: { height: 1, backgroundColor: palette.border, marginVertical: 10 },
   separatorSmall: { height: 8 },
-  menuItemActive: { backgroundColor: "#f3e7dc", borderRadius: 8 },
+  menuItemActive: { backgroundColor: palette.parchment, borderRadius: radius.md },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 10,
+    borderRadius: radius.md,
   },
   menuIcon: { width: 32, alignItems: "center", justifyContent: "center" },
   menuLabel: {
     fontSize: 14,
-    color: "#3c1a06",
+    color: palette.mahogany,
     marginLeft: 6,
-    fontWeight: "600",
+    fontWeight: "800",
   },
   itemSeparator: {
     height: 1,
-    backgroundColor: "#EEE",
-    marginVertical: 8,
+    backgroundColor: "rgba(234,223,210,0.72)",
+    marginVertical: 5,
     marginLeft: 40,
     marginRight: 8,
   },
