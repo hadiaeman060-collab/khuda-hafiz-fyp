@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,14 +12,26 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { useAuth } from "./context/AuthContext";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [name, setName] = useState("Fatima");
-  const [phone, setPhone] = useState("+92034***9247");
-  const [email, setEmail] = useState("fatima@gmail.com");
+  const { user } = useAuth();
+
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("********");
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // Load user data from auth context
+  useEffect(() => {
+    if (user) {
+      setName(user.displayName || "");
+      setEmail(user.email || "");
+      setPhone(user.phoneNumber || (user as any).phone || "");
+    }
+  }, [user]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -106,7 +118,7 @@ export default function ProfilePage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   // add top spacing so content sits lower and center the headings
   content: { padding: 20, alignItems: "center", paddingTop: 40 },
   title: {

@@ -78,7 +78,7 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   radioOuter: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "#999",
     alignItems: "center",

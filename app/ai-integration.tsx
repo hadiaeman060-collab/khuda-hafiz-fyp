@@ -4,10 +4,12 @@ import {
   Text,
   StyleSheet,
   Image,
-  TouchableOpacity,
   ScrollView,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import TopBar from "../components/TopBar";
+import BottomNavBar from "../components/BottomNavBar";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 export default function AiIntegrationScreen() {
   const router = useRouter();
@@ -17,24 +19,17 @@ export default function AiIntegrationScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Image
-                source={require("../assets/icons/back.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Image
-                source={require("../assets/icons/bell.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-          </View>
+        <TopBar
+          showBack
+          title="AI Integration"
+          onBackPress={() => router.back()}
+          onBellPress={() => router.push("/notifications" as any)}
+        />
 
-          {/* Ai-Integration Image */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <Image
             source={require("../assets/images/ai-integration-image.png")}
             style={styles.mainImage}
@@ -76,146 +71,61 @@ export default function AiIntegrationScreen() {
           </View>
         </ScrollView>
 
-        {/* Bottom Navigation */}
-        <View style={styles.navbar}>
-          <NavItem label="Home" icon={require("../assets/icons/home.png")} active />
-          <NavItem label="Packages" icon={require("../assets/icons/packages.png")} />
-
-          {/* Floating Call Button */}
-          <TouchableOpacity style={styles.callButton}>
-            <Image
-              source={require("../assets/icons/call.png")}
-              style={styles.callIcon}
-            />
-          </TouchableOpacity>
-
-          <NavItem label="Contact" icon={require("../assets/icons/contact.png")} />
-          <NavItem label="Message" icon={require("../assets/icons/message.png")} />
-        </View>
+        <BottomNavBar activeTab="Home" />
       </View>
     </>
   );
 }
 
-//
-// Reusable Navbar Item
-//
-type NavItemProps = {
-  label: string;
-  icon: any;
-  active?: boolean;
-};
-
-const NavItem = ({ label, icon, active }: NavItemProps) => (
-  <TouchableOpacity style={styles.navItem}>
-    <Image
-      source={icon}
-      style={[styles.navIcon, active && styles.activeIcon]}
-    />
-    <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
-  </TouchableOpacity>
-);
-
-//
-// Styles
-//
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: palette.cream,
   },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  topIcon: {
-    width: 26,
-    height: 26,
-    tintColor: "#5a3d2b",
+  scrollContent: {
+    paddingBottom: 112,
   },
   mainImage: {
     width: "100%",
-    height: 260, // Increased height
+    height: 260,
     marginBottom: 20,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginHorizontal: 15,
+    fontSize: 23,
+    fontWeight: "900",
+    marginHorizontal: spacing.lg,
     marginBottom: 10,
-    color: "#000",
+    color: palette.ink,
   },
   desc: {
     fontSize: 14,
-    color: "#444",
-    marginHorizontal: 15,
+    color: palette.muted,
+    marginHorizontal: spacing.lg,
     marginBottom: 20,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   option: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 15,
-    marginBottom: 15,
+    marginHorizontal: spacing.lg,
+    marginBottom: 12,
+    backgroundColor: palette.white,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
   optionIcon: {
-    width: 28, // Increased size
+    width: 28,
     height: 28,
     marginRight: 12,
-    tintColor: "#8B4513",
+    tintColor: palette.bronze,
   },
   optionText: {
     fontSize: 14,
-    color: "#333",
-  },
-
-  // Navbar
-  navbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  navItem: {
-    alignItems: "center",
-  },
-  navIcon: {
-    width: 22,
-    height: 22,
-    marginBottom: 2,
-  },
-  navLabel: {
-    fontSize: 10,
-  },
-  activeIcon: {
-    tintColor: "#8B4513",
-  },
-  activeLabel: {
-    color: "#8B4513",
-    fontWeight: "600",
-  },
-  callButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -30, // floats above navbar
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  callIcon: {
-    width: 28,
-    height: 28,
-    tintColor: "#8B4513",
+    color: palette.ink,
+    fontWeight: "700",
+    flex: 1,
   },
 });

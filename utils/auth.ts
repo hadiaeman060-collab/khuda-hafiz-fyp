@@ -1,10 +1,13 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import axios from 'axios';
+import { API_URL } from './config';
 
-const BACKEND_URL = 'http://192.168.18.23:3000'; // adjust to your dev machine IP
+const BACKEND_URL = API_URL; // configured via `.env` or fallback in `config.ts`
 
-// Safe storage wrappers: prefer SecureStore, fall back to localStorage (web)
-const hasSecureStore = !!(SecureStore && (SecureStore as any).setItemAsync);
+// Safe storage wrappers: prefer SecureStore on native, fall back to localStorage (web)
+const isWeb = Platform.OS === 'web' || (typeof window !== 'undefined' && typeof window.document !== 'undefined');
+const hasSecureStore = !isWeb && !!(SecureStore && typeof (SecureStore as any).getItemAsync === 'function');
 
 async function safeSet(key: string, value: string) {
   if (hasSecureStore) {
@@ -89,10 +92,12 @@ export async function logout(): Promise<{ ok: boolean; message?: string; error?:
     await clearTokens();
     return { ok: true, message: 'Logout succeeded' };
   } catch (err) {
-    console.warn('Logout request failed', err?.response?.data || err.message || err);
+    const axiosErr = axios.isAxiosError(err) ? err : null;
+    const detail = axiosErr?.response?.data || (err instanceof Error ? err.message : err);
+    console.warn('Logout request failed', detail);
     // Clear local tokens even if backend call failed to ensure user is logged out locally
     await clearTokens();
-    return { ok: false, error: err?.response?.data || err.message || err };
+    return { ok: false, error: detail };
   }
 }
 

@@ -35,17 +35,5 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-config/geminiConfig.js
 
 
-# Backend secrets
-khuda-hafiz-backend/serviceAccountKey.json
-khuda-hafiz-backend/.env
-
-# Backend secrets
-khuda-hafiz-backend/serviceAccountKey.json
-khuda-hafiz-backend/.env
-
-# Backend secrets
-khuda-hafiz-backend/serviceAccountKey.json
-khuda-hafiz-backend/.env

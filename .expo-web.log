@@ -1,0 +1,18 @@
+
+> khuda-hafiz@1.0.0 web
+> expo start --web --port 8082
+
+env: load .env
+env: export EXPO_PUBLIC_API_URL
+Starting project at D:\GitHub\khuda-hafiz-fyp
+Starting Metro Bundler
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Web Bundled 1439ms node_modules\expo-router\entry.js (1016 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 88ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 150ms node_modules\expo-router\entry.js (1 module)
+ LOG  [web] Logs will appear in the browser console

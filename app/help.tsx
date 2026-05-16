@@ -93,14 +93,7 @@ export default function HelpPage() {
       </ScrollView>
 
       {/* ====== Bottom Nav Bar ====== */}
-      <BottomNavBar
-        activeTab="Contact"
-        onHomePress={() => router.push("/home")}
-        onPackagesPress={() => router.push("/basic-package")}
-        onContactPress={() => router.push("/contact")}
-        onMessagePress={() => router.push("/chatbot")}
-        onCallPress={() => alert("Calling Khuda Hafiz...")}
-      />
+      <BottomNavBar activeTab="Contact" />
     </View>
   );
 }
@@ -108,7 +101,7 @@ export default function HelpPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF",
+    backgroundColor: "#fff8ef",
   },
   header: {
     marginTop: 50,
@@ -172,7 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3C2A21",
     marginHorizontal: 60,
     marginTop: 25,
-    borderRadius: 10,
+    borderRadius: 999,
     paddingVertical: 14,
     alignItems: "center",
   },
