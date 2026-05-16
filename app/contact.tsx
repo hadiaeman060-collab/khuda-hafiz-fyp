@@ -24,6 +24,7 @@ export default function ContactScreen() {
           {/* Top Bar */}
           <TopBar
             showBack
+            title="Contact"
             onBellPress={() => router.push("/notifications" as any)}
             onBackPress={() => router.back()}
           />
@@ -114,7 +115,7 @@ export default function ContactScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#fff8ef",
   },
   heading: {
     textAlign: "center",
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
   noteBox: {
     backgroundColor: "#f9f7f3",
     marginHorizontal: 25,
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 14,
     marginTop: 10,
   },
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
   },
   helpButton: {
     backgroundColor: "#5a3d2b",
-    borderRadius: 10,
+    borderRadius: 999,
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",

@@ -12,6 +12,7 @@ import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
 import { getServices, Service } from "../utils/servicesAPI";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 export default function CustomizePackageScreen() {
   const router = useRouter();
@@ -114,7 +115,10 @@ export default function CustomizePackageScreen() {
       <View style={styles.container}>
         <TopBar showBack onBackPress={() => router.back()} />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <View style={styles.tabs}>
             <TouchableOpacity onPress={() => router.push("/basic-package")}>
               <Text style={styles.tab}>Basic</Text>
@@ -217,43 +221,48 @@ export default function CustomizePackageScreen() {
   );
 }
 
-const BROWN = "#5a3d2b";
+const BROWN = palette.brown;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: palette.cream },
+  scrollContent: { paddingBottom: 112 },
 
   tabs: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 10,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
+    margin: spacing.md,
+    padding: 5,
+    borderRadius: radius.pill,
+    backgroundColor: palette.white,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
 
   tab: {
-    fontSize: 14,
-    color: "#777",
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "#f4f4f4",
+    fontSize: 12,
+    color: palette.muted,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    fontWeight: "800",
   },
 
   activeTab: {
     backgroundColor: BROWN,
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "900",
   },
 
   packageCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: palette.white,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     marginHorizontal: 15,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
 
   cardRow: {
@@ -278,7 +287,7 @@ const styles = StyleSheet.create({
   packageTitle: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "800",
     color: BROWN,
   },
 
@@ -290,8 +299,9 @@ const styles = StyleSheet.create({
 
   packageDesc: {
     fontSize: 12,
-    color: "#666",
+    color: palette.muted,
     marginLeft: 28,
+    lineHeight: 18,
   },
 
   expandWrap: {
@@ -301,28 +311,28 @@ const styles = StyleSheet.create({
 
   expandLabel: {
     fontSize: 12,
-    color: "#444",
+    color: palette.brown,
     marginBottom: 6,
-    fontWeight: "600",
+    fontWeight: "800",
   },
 
   pickerWrap: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     marginBottom: 10,
     overflow: "hidden",
-    backgroundColor: "#fff",
+    backgroundColor: palette.cream,
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     paddingHorizontal: 10,
     paddingVertical: 8,
     marginBottom: 8,
-    backgroundColor: "#fff",
+    backgroundColor: palette.cream,
   },
 
   cateringTotal: {
@@ -332,40 +342,41 @@ const styles = StyleSheet.create({
   },
 
   totalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: palette.parchment,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     marginHorizontal: 15,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: palette.sand,
     flexDirection: "row",
     justifyContent: "space-between",
   },
 
   totalLabel: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "800",
     color: BROWN,
   },
 
   totalPrice: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "900",
     color: BROWN,
   },
 
   buyButton: {
-    backgroundColor: BROWN,
+    backgroundColor: palette.mahogany,
     margin: 20,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: radius.pill,
     alignItems: "center",
+    ...shadow.glow,
   },
 
   buyButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "900",
   },
 });

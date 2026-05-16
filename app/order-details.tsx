@@ -283,7 +283,7 @@ export default function OrderDetailsScreen() {
 const BROWN = "#5a3d2b";
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  container: { flex: 1, backgroundColor: "#fff8ef", padding: 20 },
   topBar: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   icon: { width: 24, height: 24, tintColor: BROWN },
   header: {
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: "#f9f6f2",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 18,
     marginBottom: 20,
   },
   rowBetween: { flexDirection: "row", justifyContent: "space-between" },
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   packageCard: {
     backgroundColor: "#f9f6f2",
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 15,
     marginBottom: 20,
   },
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   payButton: {
     backgroundColor: BROWN,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 999,
     alignItems: "center",
   },
   payButtonDisabled: {

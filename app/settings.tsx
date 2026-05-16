@@ -126,7 +126,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   rowIconBg: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,

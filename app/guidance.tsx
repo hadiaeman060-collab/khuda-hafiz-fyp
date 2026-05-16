@@ -4,10 +4,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Image,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
+import TopBar from "../components/TopBar";
+import BottomNavBar from "../components/BottomNavBar";
 
 export default function GuidanceScreen() {
   const router = useRouter();
@@ -17,23 +18,17 @@ export default function GuidanceScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => router.back()}>
-              <Image
-                source={require("../assets/icons/back.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-            <Text style={styles.topTitle}>Guidance</Text>
-            <TouchableOpacity>
-              <Image
-                source={require("../assets/icons/bell.png")}
-                style={styles.topIcon}
-              />
-            </TouchableOpacity>
-          </View>
+        <TopBar
+          showBack
+          title="Guidance"
+          onBackPress={() => router.back()}
+          onBellPress={() => router.push("/notifications" as any)}
+        />
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
 
           {/* Checklist Section */}
           <Text style={styles.sectionTitle}>Checklist in preparation:</Text>
@@ -135,78 +130,16 @@ export default function GuidanceScreen() {
           </View>
         </ScrollView>
 
-        {/* Bottom Navigation */}
-        <View style={styles.navbar}>
-          <NavItem
-            label="Home"
-            icon={require("../assets/icons/home.png")}
-            active
-          />
-          <NavItem
-            label="Packages"
-            icon={require("../assets/icons/packages.png")}
-          />
-
-          {/* Floating Call Button */}
-          <TouchableOpacity style={styles.callButton}>
-            <Image
-              source={require("../assets/icons/call.png")}
-              style={styles.callIcon}
-            />
-          </TouchableOpacity>
-
-          <NavItem
-            label="Contact"
-            icon={require("../assets/icons/contact.png")}
-          />
-          <NavItem
-            label="Message"
-            icon={require("../assets/icons/message.png")}
-          />
-        </View>
+        <BottomNavBar activeTab="Home" />
       </View>
     </>
   );
 }
 
-//
-// Reusable Nav Item
-//
-type NavItemProps = {
-  label: string;
-  icon: any;
-  active?: boolean;
-};
-
-const NavItem = ({ label, icon, active }: NavItemProps) => (
-  <TouchableOpacity style={styles.navItem}>
-    <Image
-      source={icon}
-      style={[styles.navIcon, active && styles.activeIcon]}
-    />
-    <Text style={[styles.navLabel, active && styles.activeLabel]}>{label}</Text>
-  </TouchableOpacity>
-);
-
-//
-// Styles
-//
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-
-  // Top Bar
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-  },
-  topIcon: { width: 24, height: 24, tintColor: "#8B4513" },
-  topTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#3c1a06",
+  container: { flex: 1, backgroundColor: "#fff8ef" },
+  scrollContent: {
+    paddingBottom: 112,
   },
 
   // Sections
@@ -235,41 +168,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 18,
     backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 12,
   },
   stepIcon: { width: 40, height: 40, marginRight: 12, tintColor: "#8B4513" },
   stepText: { flex: 1 },
   stepTitle: { fontSize: 14, fontWeight: "600", marginBottom: 4 },
   stepDesc: { fontSize: 13, color: "#444", lineHeight: 18 },
-
-  // Navbar
-  navbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  navItem: { alignItems: "center" },
-  navIcon: { width: 22, height: 22, marginBottom: 2 },
-  navLabel: { fontSize: 10, color: "#666" },
-  activeIcon: { tintColor: "#8B4513" },
-  activeLabel: { color: "#8B4513", fontWeight: "600" },
-  callButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -30,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  callIcon: { width: 28, height: 28, tintColor: "#8B4513" },
 });

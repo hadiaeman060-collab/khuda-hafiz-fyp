@@ -105,7 +105,7 @@ const CIRCLE_SIZE = 100;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#fff8ef",
   },
   header: {
     backgroundColor: "#3c1a06",
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: "#2b0e05",
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 999,
     alignItems: "center",
   },
   buttonText: {

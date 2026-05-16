@@ -89,7 +89,7 @@ export default function Notifications() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
 
   cardContainer: {
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 18,
     backgroundColor: "#fff",
     // shadow
     shadowColor: "#000",

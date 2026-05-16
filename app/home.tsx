@@ -7,11 +7,14 @@ import {
   Image,
   ScrollView,
 } from "react-native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import TopBar from "../components/TopBar";
 import BottomNavBar from "../components/BottomNavBar";
 import FloatingSearchButton from "../components/FloatingSearchGraveButton";
 import MenuModal from "../components/MenuModal";
+import { palette, radius, shadow, spacing } from "../constants/theme";
 
 
 export default function HomeScreen() {
@@ -82,21 +85,37 @@ export default function HomeScreen() {
           onClose={() => setMenuVisible(false)}
         />
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Banner Section */}
-          <View style={styles.bannerContainer}>
-            <Text style={styles.bannerText}>
-              Graceful Goodbyes, Simplified with Technology
-            </Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <LinearGradient
+            colors={["#2b1208", "#5a3d2b", "#b9824c"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroKicker}>Khuda Hafiz Care</Text>
+              <Text style={styles.bannerText}>
+                Graceful goodbyes, guided with calm technology.
+              </Text>
+              <Text style={styles.heroSubtext}>
+                Burial services, support, guidance, and urgent help in one
+                dignified place.
+              </Text>
+            </View>
             <Image
               source={require("../assets/images/banner2.png")}
-              style={[styles.banner, { marginTop: 10 }]}
+              style={styles.banner}
               resizeMode="cover"
             />
-          </View>
+          </LinearGradient>
 
-          {/* Services Offered */}
-          <Text style={styles.sectionTitle}>Services Offered</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Services Offered</Text>
+            <Text style={styles.sectionMeta}>Tap to arrange</Text>
+          </View>
           <View style={styles.servicesGrid}>
             {primaryServices.map((service) => (
               <ServiceItem
@@ -119,8 +138,10 @@ export default function HomeScreen() {
             </View>
           ) : null}
 
-          {/* Special Services */}
-          <Text style={styles.sectionTitle}>Special Services</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Special Services</Text>
+            <Text style={styles.sectionMeta}>Smart assistance</Text>
+          </View>
           <View style={styles.cardRow}>
             <ServiceCard
               title="AI Integration"
@@ -150,8 +171,10 @@ export default function HomeScreen() {
             />
           </View>
 
-          {/* Guidance */}
-          <Text style={styles.sectionTitle}>Guidance</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Guidance</Text>
+            <Text style={styles.sectionMeta}>Step-by-step</Text>
+          </View>
           <TouchableOpacity
             style={styles.guidanceCard}
             onPress={() => router.push("/guidance")}
@@ -186,11 +209,37 @@ type ServiceItemProps = {
 };
 
 const ServiceItem = ({ label, icon, bgColor, onPress }: ServiceItemProps) => (
-  <TouchableOpacity style={styles.serviceItem} onPress={onPress}>
-    <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
-      <Image source={icon} style={styles.serviceIcon} />
-    </View>
-    <Text style={styles.serviceLabel}>{label}</Text>
+  <TouchableOpacity
+    style={styles.serviceItem}
+    onPress={onPress}
+    activeOpacity={0.86}
+  >
+    <BlurView intensity={46} tint="light" style={styles.serviceGlass}>
+      <LinearGradient
+        colors={[
+          "rgba(255,255,255,0.7)",
+          "rgba(255,248,239,0.18)",
+          "rgba(216,170,98,0.2)",
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.crystalWash}
+      />
+      <View style={styles.glassHighlight} />
+      <View style={styles.glassFacet} />
+      <View style={styles.glassFacetSmall} />
+      <View style={styles.glassShard} />
+      <View style={styles.glassShardSecond} />
+      <View style={[styles.iconCircle, { backgroundColor: bgColor }]}>
+        <Image source={icon} style={styles.serviceIcon} />
+      </View>
+      <View style={styles.labelPill}>
+        <Text style={styles.serviceLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+    </BlurView>
+    <View style={styles.serviceGlow} />
   </TouchableOpacity>
 );
 
@@ -204,8 +253,10 @@ type ServiceCardProps = {
 const ServiceCard = ({ title, desc, image, onPress }: ServiceCardProps) => (
   <TouchableOpacity style={styles.card} onPress={onPress}>
     <Image source={image} style={styles.cardImage} />
-    <Text style={styles.cardTitle}>{title}</Text>
-    <Text style={styles.cardDesc}>{desc}</Text>
+    <View style={styles.cardBody}>
+      <Text style={styles.cardTitle}>{title}</Text>
+      <Text style={styles.cardDesc}>{desc}</Text>
+    </View>
   </TouchableOpacity>
 );
 
@@ -213,95 +264,234 @@ const ServiceCard = ({ title, desc, image, onPress }: ServiceCardProps) => (
 // Styles
 //
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  bannerContainer: { paddingHorizontal: 15, marginTop: 10 },
-  banner: { width: "100%", height: 120, borderRadius: 12 },
+  container: { flex: 1, backgroundColor: palette.cream },
+  scrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: 112,
+  },
+  heroCard: {
+    minHeight: 210,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    overflow: "hidden",
+    ...shadow.medium,
+  },
+  heroCopy: {
+    width: "62%",
+    zIndex: 1,
+  },
+  heroKicker: {
+    color: "#f3d390",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0,
+    textTransform: "uppercase",
+    marginBottom: spacing.sm,
+  },
+  banner: {
+    position: "absolute",
+    right: -26,
+    bottom: -14,
+    width: "56%",
+    height: 175,
+    borderTopLeftRadius: radius.xl,
+    opacity: 0.92,
+  },
   bannerText: {
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-    marginVertical: 15,
-    color: "#3c1a06",
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: "900",
+    color: palette.white,
+  },
+  heroSubtext: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#f7efe4",
+    marginTop: spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginHorizontal: 15,
-    marginTop: 20,
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: "900",
+    color: palette.ink,
+  },
+  sectionMeta: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: palette.bronze,
   },
   servicesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginHorizontal: 15,
     marginBottom: 2,
   },
   centeredServiceRow: {
     alignItems: "center",
-    marginHorizontal: 15,
     marginBottom: 8,
   },
   serviceItem: {
     width: "31.5%",
+    aspectRatio: 1,
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    paddingVertical: 14,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#eee4d8",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: "rgba(255,255,255,0.92)",
+    overflow: "hidden",
+    shadowColor: palette.bronze,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 5,
   },
-  iconCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  serviceGlass: {
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    paddingTop: 15,
+    paddingBottom: 12,
+    paddingHorizontal: 7,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  crystalWash: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glassHighlight: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "38%",
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.36)",
+  },
+  glassFacet: {
+    position: "absolute",
+    top: -28,
+    right: -34,
+    width: 86,
+    height: 118,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.26)",
+    transform: [{ rotate: "34deg" }],
+  },
+  glassFacetSmall: {
+    position: "absolute",
+    left: -22,
+    bottom: -10,
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    transform: [{ rotate: "-28deg" }],
+  },
+  glassShard: {
+    position: "absolute",
+    top: 16,
+    left: 10,
+    width: 2,
+    height: 82,
+    borderRadius: 1,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    transform: [{ rotate: "38deg" }],
+  },
+  glassShardSecond: {
+    position: "absolute",
+    right: 14,
+    bottom: 14,
+    width: 1,
+    height: 58,
+    borderRadius: 1,
+    backgroundColor: "rgba(255,255,255,0.48)",
+    transform: [{ rotate: "38deg" }],
+  },
+  serviceGlow: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 0,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "rgba(255,255,255,0.86)",
+  },
+  iconCircle: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
   },
   serviceIcon: { width: 36, height: 36, resizeMode: "contain" },
-  serviceLabel: { fontSize: 13, color: "#2d2d2d", fontWeight: "600" },
+  labelPill: {
+    maxWidth: "100%",
+    minHeight: 28,
+    justifyContent: "center",
+    paddingHorizontal: 9,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(255,255,255,0.42)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.55)",
+  },
+  serviceLabel: {
+    fontSize: 12,
+    color: palette.ink,
+    fontWeight: "900",
+    textAlign: "center",
+  },
   cardRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: 15,
     marginBottom: 15,
   },
   card: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: palette.white,
+    borderRadius: radius.lg,
+    padding: 8,
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
   cardImage: {
     width: "100%",
-    height: 80,
-    borderRadius: 8,
-    marginBottom: 10,
+    height: 92,
+    borderRadius: radius.md,
+    marginBottom: 8,
   },
-  cardTitle: { fontSize: 14, fontWeight: "bold", marginBottom: 5 },
-  cardDesc: { fontSize: 12, color: "#666" },
+  cardBody: { paddingHorizontal: 4, paddingBottom: 6 },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 5,
+    color: palette.ink,
+  },
+  cardDesc: { fontSize: 12, color: palette.muted, lineHeight: 17 },
   guidanceCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    backgroundColor: palette.white,
+    borderRadius: radius.lg,
     padding: 15,
-    marginHorizontal: 15,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: palette.border,
+    ...shadow.soft,
   },
-  guidanceImage: { width: 60, height: 60, marginRight: 15, borderRadius: 8 },
-  guidanceText: { flex: 1, fontSize: 13, color: "#333" },
+  guidanceImage: { width: 72, height: 72, marginRight: 15, borderRadius: 18 },
+  guidanceText: { flex: 1, fontSize: 13, color: palette.muted, lineHeight: 19 },
   /* modal moved into components/MenuModal.tsx */
 });
 

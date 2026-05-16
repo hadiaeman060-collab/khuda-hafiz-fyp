@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  Image,
   FlatList,
   ActivityIndicator,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import axios from "axios";
 import BottomNavBar from "../components/BottomNavBar";
+import TopBar from "../components/TopBar";
 import { API_URL } from "../utils/config";
 import { useAuth } from "./context/AuthContext";
 import { useNotifications } from "./context/NotificationContext";
@@ -93,17 +93,12 @@ export default function FeedbackScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Image
-              source={require("../assets/icons/back.png")}
-              style={styles.backIcon}
-            />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Feedback</Text>
-          <View style={{ width: 24 }} />
-        </View>
+        <TopBar
+          showBack
+          title="Feedback"
+          onBackPress={() => router.back()}
+          onBellPress={() => router.push("/notifications" as any)}
+        />
 
         {/* Content */}
         <View style={styles.content}>
@@ -224,21 +219,7 @@ export default function FeedbackScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-  },
-  backIcon: { width: 24, height: 24, tintColor: "#5a3d2b" },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#5a3d2b",
-  },
+  container: { flex: 1, backgroundColor: "#fff8ef" },
 
   content: { padding: 20 },
   title: { fontSize: 18, fontWeight: "600", marginBottom: 6 },
@@ -257,7 +238,7 @@ const styles = StyleSheet.create({
   textArea: {
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 10,
+    borderRadius: 16,
     padding: 12,
     height: 100,
     textAlignVertical: "top",
@@ -267,7 +248,7 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: "#2b0e05",
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 999,
     width: 140,
   },
   submitText: {
