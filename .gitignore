@@ -36,4 +36,11 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Environment files (frontend + backend)
+# Ignore common env files at repo root and in subfolders
+.env
+.env.local
+**/.env
+**/.env.local
+
 
