@@ -521,16 +521,6 @@ app.post('/logout', verifyAuth, async (req, res) => {
     res.status(500).json({ error: 'Logout failed', detail: err.message || err });
   }
 });
-// ✅ MongoDB connection
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log("MongoDB connected successfully");
-  })
-  .catch((err) => {
-    console.error("MongoDB connection error:", err);
-  });
-
 const normalizePaymentMode = (value) => {
   if (!value) return null;
   const v = String(value).trim().toLowerCase();
@@ -983,6 +973,16 @@ app.post("/api/chat", chatLimiter, async (req, res) => {
     });
   }
 });
+
+// Health check endpoint (used by Render.com to verify app is running)
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log('Server running on port ' + PORT);
 });
