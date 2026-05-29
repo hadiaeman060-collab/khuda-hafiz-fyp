@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
-import { API_URL } from "../utils/config";
+import API_URL from "../utils/config";
 
 const SafepayPaymentScreen = () => {
   const router = useRouter();

@@ -1,4 +1,3 @@
-import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 function stripQuotes(v?: string | null): string | undefined {
@@ -17,22 +16,14 @@ const fromExpo =
   stripQuotes((Constants?.manifest?.extra as any)?.EXPO_PUBLIC_API_URL) ||
   stripQuotes((Constants?.manifest?.extra as any)?.API_URL);
 
-function isLocal(url?: string): boolean {
-  if (!url) return false;
-  try {
-    const host = new URL(url).hostname;
-    return host === "localhost" || host === "127.0.0.1";
-  } catch {
-    // If not a full URL, do a simple check
-    return /localhost|127\.0\.0\.1/.test(url);
-  }
-}
-
 const envUrl = fromProcess || fromExpo;
 
-export const API_URL: string = (() => {
-  if (Platform.OS === "web") {
-    return isLocal(envUrl) ? envUrl! : "http://localhost:3000";
-  }
-  return envUrl || "http://192.168.100.129:3000";
-})();
+// Backend API URL
+// For local development, set EXPO_PUBLIC_API_URL in .env to your computer's IP:
+//   EXPO_PUBLIC_API_URL=http://192.168.x.x:3000
+// For production (deployed on Render.com):
+const PRODUCTION_API_URL = "https://khudahafiz-backend.onrender.com";
+
+export const API_URL: string = envUrl || PRODUCTION_API_URL;
+
+export default API_URL;
