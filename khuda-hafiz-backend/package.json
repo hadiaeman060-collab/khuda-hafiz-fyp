@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@sfpy/node-core": "^0.3.5",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -20,6 +21,7 @@
     "express-rate-limit": "^8.2.1",
     "firebase-admin": "^13.6.0",
     "groq-sdk": "^0.37.0",
+    "mongodb": "^7.2.0",
     "mongoose": "^8.20.4",
     "nodemailer": "^6.10.1"
   }
