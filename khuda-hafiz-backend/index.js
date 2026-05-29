@@ -14,6 +14,7 @@ const Graveyard = require("./models/Graveyard");
 const Feedback = require("./models/Feedback");
 const defaultGraveyards = require("./seed/graveyards.data");
 const graveyardRoutes = require("./routes/graveyard.routes");
+const safepayRoutes = require("./safepay.routes");
 const rateLimit = require("express-rate-limit");
 
 async function ensureDefaultGraveyards() {
@@ -67,6 +68,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use("/graveyards", graveyardRoutes);
+app.use("/safepay", safepayRoutes);
 // In-memory store for pending signup OTPs: { email -> { code, expiresAt } }
 // NOTE: For production use a persistent store (Redis/DB) and rate-limiting.
 const pendingOtps = new Map();
