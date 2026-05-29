@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { View, TextInput, Pressable, Text, StyleSheet } from "react-native";
 
 type PlaceItem = {
   place_id: number;
@@ -22,12 +22,14 @@ export default function OSMAutocompleteInput({
   const [results, setResults] = useState<PlaceItem[]>([]);
   const [open, setOpen] = useState(false);
   const timerRef = useRef<any>(null);
+  const selectedLabelRef = useRef("");
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    if (!value || value.trim().length < 3) {
+    if (!value || value.trim().length < 3 || value === selectedLabelRef.current) {
       setResults([]);
+      setOpen(false);
       return;
     }
 
@@ -47,6 +49,7 @@ export default function OSMAutocompleteInput({
         setOpen(true);
       } catch {
         setResults([]);
+        setOpen(false);
       }
     }, 250);
 
@@ -54,17 +57,18 @@ export default function OSMAutocompleteInput({
   }, [value]);
 
   return (
-    <View style={{ position: "relative" }}>
+    <View style={styles.wrap}>
       <TextInput
         placeholder={placeholder}
         value={value}
         onChangeText={(t) => {
+          selectedLabelRef.current = "";
           onChangeText(t);
           setOpen(true);
         }}
         onBlur={() => {
           // close after losing focus (small delay lets tap register)
-          setTimeout(() => setOpen(false), 150);
+          setTimeout(() => setOpen(false), 250);
         }}
         style={styles.input}
         placeholderTextColor="#888"
@@ -73,24 +77,25 @@ export default function OSMAutocompleteInput({
       {open && results.length > 0 && (
         <View style={styles.dropdown}>
           {results.map((item) => (
-            <TouchableOpacity
+            <Pressable
               key={String(item.place_id)}
               style={styles.row}
-              activeOpacity={0.7}
-              onPress={() => {
-                setOpen(false);
-                setResults([]);
-                onSelect({
+              onPressIn={() => {
+                const selected = {
                   label: item.display_name,
                   lat: Number(item.lat),
                   lng: Number(item.lon),
-                });
+                };
+                selectedLabelRef.current = selected.label;
+                setOpen(false);
+                setResults([]);
+                onSelect(selected);
               }}
             >
               <Text style={styles.rowText} numberOfLines={2}>
                 {item.display_name}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
       )}
@@ -99,6 +104,10 @@ export default function OSMAutocompleteInput({
 }
 
 const styles = StyleSheet.create({
+  wrap: {
+    position: "relative",
+    zIndex: 20,
+  },
   input: {
     height: 48,
     borderWidth: 1,
@@ -110,6 +119,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   dropdown: {
+    position: "absolute",
+    top: 54,
+    left: 0,
+    right: 0,
+    zIndex: 50,
     marginTop: 6,
     borderWidth: 1,
     borderColor: "#eee",
@@ -117,6 +131,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     overflow: "hidden",
     elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
   },
   row: {
     paddingVertical: 12,
