@@ -10,8 +10,11 @@ require("dotenv").config({
 
 console.log("🚀 Graveyard seed file started");
 
-const MONGO_URI =
-  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/khuda-hafiz";
+const MONGO_URI = process.env.MONGODB_URI;
+
+if (!MONGO_URI) {
+  throw new Error("MONGODB_URI is required to seed graveyards.");
+}
 
 console.log("✅ SEED will connect to:", MONGO_URI);
 

@@ -1,6 +1,5 @@
 // Centralized config for app runtime values.
 // Try multiple sources: process.env, Expo Constants (app config extra), then fallback.
-import { Platform } from "react-native";
 import Constants from "expo-constants";
 
 function stripQuotes(v?: string | null): string | undefined {
@@ -17,18 +16,13 @@ const fromExpo =
   (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_API_URL ||
   (process?.env as any)?.EXPO_PUBLIC_API_URL;
 
-// On web, prefer localhost for development unless EXPO_PUBLIC_API_URL explicitly points to localhost.
-function expoUrlIsLocal(url?: string) {
-  if (!url) return false;
-  return /localhost|127\.0\.0\.1/.test(url);
-}
+// Backend API URL
+// For local development, set EXPO_PUBLIC_API_URL in .env to your computer's IP:
+//   EXPO_PUBLIC_API_URL=http://192.168.x.x:3000
+// For production (deployed on Render.com):
+const PRODUCTION_API_URL = "https://khudahafiz-backend.onrender.com";
 
-export const API_URL: string = ((): string => {
-  if (Platform.OS === "web") {
-    return expoUrlIsLocal(fromExpo) ? fromExpo! : "http://localhost:3000";
-  }
-  return fromExpo || "http://10.120.133.52:3000";
-})();
+export const API_URL: string = fromProcess || fromExpo || PRODUCTION_API_URL;
 
 export default function UtilsConfigRoute() {
   return null;

@@ -1,7 +1,6 @@
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+import API_URL from "../../utils/config";
 
 export async function sendChatMessage(message, history = [], userId) {
-  if (!API_URL) throw new Error("EXPO_PUBLIC_API_URL missing in .env");
   if (!userId) throw new Error("Please log in to chat.");
 
   const res = await fetch(`${API_URL}/api/chat`, {
