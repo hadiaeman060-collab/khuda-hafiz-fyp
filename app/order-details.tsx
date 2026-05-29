@@ -128,6 +128,26 @@ export default function OrderDetailsScreen() {
         type: "success",
       });
 
+      const booking = response.data?.booking || response.data?.data?.booking;
+      if (paymentMethod === "online") {
+        if (!booking?._id) {
+          Alert.alert("Payment Error", "Booking was created but no booking ID was returned.");
+          return;
+        }
+
+        router.push({
+          pathname: "/SafepayPayment",
+          params: {
+            bookingId: String(booking._id),
+            amount: String(booking.totalPrice ?? total),
+            userId: user.uid,
+            email: user.email || "",
+            phone: user.phoneNumber || "",
+          },
+        });
+        return;
+      }
+
       router.push({
         pathname: "/order-confirmation",
         params: {
@@ -309,6 +329,7 @@ const styles = StyleSheet.create({
   addressInputWrap: {
     width: "100%",
     marginTop: 6,
+    zIndex: 20,
   },
   paymentOptions: {
     flexDirection: "row",

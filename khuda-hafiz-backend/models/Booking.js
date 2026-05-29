@@ -15,6 +15,23 @@ const bookingSchema = new mongoose.Schema({
     enum: ["online", "cash_on_delivery"],
     default: "cash_on_delivery",
   },
+  paymentStatus: {
+    type: String,
+    enum: ["unpaid", "pending", "paid", "failed", "refunded"],
+    default: "unpaid",
+  },
+  safepayTracker: {
+    type: String,
+    default: null,
+  },
+  safepayResponseState: {
+    type: String,
+    default: null,
+  },
+  paidAt: {
+    type: Date,
+    default: null,
+  },
   status: { type: String, default: "pending" }, // pending, paid, completed
   createdAt: { type: Date, default: Date.now },
 });

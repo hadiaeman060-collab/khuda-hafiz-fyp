@@ -135,7 +135,7 @@ export default function LogisticScreen() {
           </View>
 
           {/* Pickup */}
-          <View style={styles.locationBlock}>
+          <View style={[styles.locationBlock, styles.pickupLocationBlock]}>
             <Text style={styles.sectionLabel}>Pickup Location</Text>
             <OSMAutocompleteInput
               placeholder="Enter pickup location"
@@ -152,7 +152,7 @@ export default function LogisticScreen() {
           </View>
 
           {/* Drop */}
-          <View style={styles.locationBlock}>
+          <View style={[styles.locationBlock, styles.dropLocationBlock]}>
             <Text style={styles.sectionLabel}>Drop Location</Text>
             <OSMAutocompleteInput
               placeholder="Enter drop location"
@@ -237,6 +237,8 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 14, color: "#333" },
 
   locationBlock: { marginHorizontal: 15, marginTop: 14 },
+  pickupLocationBlock: { zIndex: 30 },
+  dropLocationBlock: { zIndex: 20 },
   sectionLabel: { fontSize: 13, fontWeight: "600", color: "#222", marginBottom: 8 },
 
   summaryCard: {
