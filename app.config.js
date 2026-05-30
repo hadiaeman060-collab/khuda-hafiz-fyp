@@ -1,26 +1,3 @@
-// // app.config.js — injects .env into Expo `extra` so the JS bundle can read runtime config
-// const fs = require('fs');
-
-// // Load dotenv if available (best-effort; dev dependency not strictly required)
-// try {
-//   require('dotenv').config();
-// } catch (e) {
-//   // dotenv not installed; rely on process.env provided by the shell
-// }
-
-// let appJson = {};
-// try {
-//   appJson = require('./app.json');
-// } catch (e) {
-//   appJson = { expo: {} };
-// }
-
-// const API_URL = process.env.API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3000';
-
-// appJson.expo = appJson.expo || {};
-// appJson.expo.extra = Object.assign({}, appJson.expo.extra || {}, { API_URL });
-
-// module.exports = appJson;
 import 'dotenv/config';
 
 export default {
@@ -28,8 +5,15 @@ export default {
     name: "KhudaHafiz",
     slug: "khuda-hafiz",
     version: "1.0.0",
+    owner: "muhib-using-expos-organization",
+    android: {
+      package: "com.khudahafiz.app",
+    },
     extra: {
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+      eas: {
+        projectId: "1b3f4942-211a-4862-96c2-e21a3f6c34ac",
+      },
     },
   },
 };
