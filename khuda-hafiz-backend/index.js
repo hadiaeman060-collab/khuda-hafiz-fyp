@@ -974,7 +974,7 @@ app.post("/api/chat", chatLimiter, async (req, res) => {
   }
 });
 
-// Health check endpoint (used by Render.com to verify app is running)
+// Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
