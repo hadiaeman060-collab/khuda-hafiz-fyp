@@ -21,7 +21,7 @@ const envUrl = fromProcess || fromExpo;
 // Backend API URL
 // For local development, set EXPO_PUBLIC_API_URL in .env to your computer's IP:
 //   EXPO_PUBLIC_API_URL=http://192.168.x.x:3000
-const BACK4APP_API_URL = "https://khudahafizdeploy-1m7on06o.b4a.run";
+const BACK4APP_API_URL = "https://khudahafizdeploy-vhj034bm.b4a.run";
 
 export const API_URL: string = envUrl || BACK4APP_API_URL;
 
