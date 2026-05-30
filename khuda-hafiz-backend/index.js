@@ -81,7 +81,14 @@ try {
 // --- Express setup ---
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.get("/", (req, res) => {
+  res.json({ status: "ok", service: "khuda-hafiz-backend" });
+});
 app.use("/graveyards", graveyardRoutes);
 app.use("/safepay", safepayRoutes);
 // In-memory store for pending signup OTPs: { email -> { code, expiresAt } }
