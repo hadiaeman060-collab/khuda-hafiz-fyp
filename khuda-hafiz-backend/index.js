@@ -45,10 +45,23 @@ const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY;
 try {
   let serviceAccount;
   const saPath = './serviceAccountKey.json';
+
   if (fs.existsSync(saPath)) {
+    // Local development: load from file
     serviceAccount = require(saPath);
+    console.log('Firebase: loaded from local file');
+  } else if (process.env.FIREBASE_SA_CHUNK_1) {
+    // Back4app: reassemble from 3 chunks
+    const fullJson =
+      (process.env.FIREBASE_SA_CHUNK_1 || '') +
+      (process.env.FIREBASE_SA_CHUNK_2 || '') +
+      (process.env.FIREBASE_SA_CHUNK_3 || '');
+    serviceAccount = JSON.parse(fullJson);
+    console.log('Firebase: loaded from chunked env variables');
   } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // Fallback: full JSON in one variable (for platforms with no limit)
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    console.log('Firebase: loaded from single env variable');
   }
 
   if (!serviceAccount) {
