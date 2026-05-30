@@ -1,4 +1,6 @@
-require('dotenv').config({ path: './.env' }); // load environment variables
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: './.env' });
+}
 console.log("BACKEND MONGODB_URI =", process.env.MONGODB_URI);
 const express = require('express');
 const axios = require('axios');
