@@ -21,9 +21,10 @@ const envUrl = fromProcess || fromExpo;
 // Backend API URL
 // For local development, set EXPO_PUBLIC_API_URL in .env to your computer's IP:
 //   EXPO_PUBLIC_API_URL=http://192.168.x.x:3000
-// For production (deployed on Render.com):
-const PRODUCTION_API_URL = "https://khudahafiz-backend.onrender.com";
+// TODO: Replace with your actual Back4app URL after first deploy
+// Format will be: https://YOUR-APP-NAME.b4a.run
+const BACK4APP_API_URL = "https://REPLACE_WITH_BACK4APP_URL.b4a.run";
 
-export const API_URL: string = envUrl || PRODUCTION_API_URL;
+export const API_URL: string = envUrl || BACK4APP_API_URL;
 
 export default API_URL;
