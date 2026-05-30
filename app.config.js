@@ -6,8 +6,13 @@ export default {
     slug: "khuda-hafiz",
     version: "1.0.0",
     owner: "muhib-using-expos-organization",
+    icon: "./assets/images/icon.png",
     android: {
       package: "com.khudahafiz.app",
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#ffffff",
+      },
     },
     extra: {
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
