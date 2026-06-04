@@ -49,6 +49,12 @@ export default function LoginScreen() {
         password,
       });
 
+      if (resp.data?.token) {
+        await auth.signIn(resp.data.token, resp.data.profile);
+        router.replace("/home");
+        return;
+      }
+
       if (!resp.data?.ok) {
         return setError(resp.data?.error || "Failed to request OTP");
       }
@@ -73,7 +79,9 @@ export default function LoginScreen() {
       // Friendly Firebase error messages
       const message =
         err?.response?.data?.message ||
+        err?.response?.data?.error ||
         err?.response?.data?.error?.message ||
+        err?.response?.data?.detail ||
         err.message ||
         "Login failed";
 
