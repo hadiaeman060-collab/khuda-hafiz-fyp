@@ -98,29 +98,18 @@ const pendingOtps = new Map();
 // In-memory store for pending login OTPs: { email -> { code, expiresAt, password } }
 const pendingLoginOtps = new Map();
 
-// Optional email transporter (nodemailer) - configured via env
-let transporter = null;
+const isLoginOtpRequired = process.env.LOGIN_OTP_REQUIRED === 'true';
+
+// Optional email sender (Resend) - configured via env
+let resend = null;
 try {
-  const nodemailer = require('nodemailer');
-  const SMTP_HOST = process.env.SMTP_HOST;
-  const SMTP_PORT = process.env.SMTP_PORT && Number(process.env.SMTP_PORT);
-  const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
-  const SMTP_USER = process.env.SMTP_USER;
-  const SMTP_PASS = process.env.SMTP_PASS;
-  if (SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS) {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_SECURE || false,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
-    // Verify SMTP connection at startup so problems surface in logs early
-    transporter.verify()
-      .then(() => console.log('SMTP transporter configured and verified'))
-      .catch((err) => console.warn('SMTP transporter verification failed:', err));
+  const { Resend } = require('resend');
+  if (process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+    console.log('Resend email sender configured');
   }
 } catch (e) {
-  console.warn('nodemailer not available or SMTP not configured');
+  console.warn('Resend not available or not configured');
 }
 
 // ✅ Signup endpoint
@@ -132,7 +121,7 @@ app.post("/signup", async (req, res) => {
 
     // If no OTP provided, generate and send one to the user's email.
     if (!otp) {
-      if (!transporter) return res.status(500).json({ error: 'SMTP not configured on server' });
+      if (!resend) return res.status(500).json({ error: 'Resend not configured on server' });
 
       // Rate-limit: prevent spamming OTPs (simple approach)
       const prev = pendingOtps.get(email);
@@ -146,19 +135,16 @@ app.post("/signup", async (req, res) => {
       pendingOtps.set(email, { code, expiresAt });
 
       try {
-        const from = process.env.EMAIL_FROM || `no-reply@${process.env.SMTP_HOST || 'localhost'}`;
-        await transporter.verify();
-        const info = await transporter.sendMail({
-          from,
+        const info = await resend.emails.send({
+          from: 'KhudaHafiz <onboarding@resend.dev>',
           to: email,
           subject: 'Your Khuda Hafiz signup OTP',
-          text: `Your verification code is ${code}. It will expire in 10 minutes.`,
           html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
         });
-        console.log('Signup OTP sent via SMTP', info.messageId || info);
+        console.log('Signup OTP sent via Resend', info.id || info);
         return res.json({ ok: true, message: 'OTP sent to email' });
       } catch (mailErr) {
-        console.error('Failed to send signup OTP via SMTP:', mailErr);
+        console.error('Failed to send signup OTP via Resend:', mailErr);
         return res.status(500).json({ error: 'Failed to send OTP email', detail: mailErr.message || String(mailErr) });
       }
     }
@@ -196,17 +182,29 @@ app.post("/login", async (req, res) => {
 
     if (!email) return res.status(400).json({ error: "Email required" });
 
+    const buildLoginResponse = (firebaseData) => ({
+      token: {
+        idToken: firebaseData.idToken,
+        refreshToken: firebaseData.refreshToken,
+      },
+      profile: {
+        uid: firebaseData.localId,
+        email: firebaseData.email,
+        displayName: firebaseData.displayName || email,
+      },
+    });
+
     // If no OTP provided, validate credentials and send OTP
     if (!otp) {
       if (!password) return res.status(400).json({ error: "Password required" });
 
       // Validate credentials with Firebase first
+      let firebaseResp;
       try {
-        const firebaseResp = await axios.post(
+        firebaseResp = await axios.post(
           `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`,
           { email, password, returnSecureToken: true }
         );
-        // Credentials valid, now send OTP
       } catch (err) {
         console.error("Credential validation failed:", err.response?.data || err.message);
         return res.status(400).json({
@@ -214,7 +212,10 @@ app.post("/login", async (req, res) => {
         });
       }
 
-      if (!transporter) return res.status(500).json({ error: 'SMTP not configured on server' });
+      if (!resend) {
+        console.warn("Resend not configured; completing login without OTP.");
+        return res.json(buildLoginResponse(firebaseResp.data));
+      }
 
       // Rate-limit: prevent spamming OTPs
       const prev = pendingLoginOtps.get(email);
@@ -227,20 +228,28 @@ app.post("/login", async (req, res) => {
       pendingLoginOtps.set(email, { code, expiresAt, password });
 
       try {
-        const from = process.env.EMAIL_FROM || `no-reply@${process.env.SMTP_HOST || 'localhost'}`;
-        await transporter.verify();
-        const info = await transporter.sendMail({
-          from,
+        const info = await resend.emails.send({
+          from: 'KhudaHafiz <onboarding@resend.dev>',
           to: email,
           subject: 'Your Khuda Hafiz login OTP',
-          text: `Your verification code is ${code}. It will expire in 10 minutes.`,
           html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
         });
-        console.log('Login OTP sent via SMTP', info.messageId || info);
+        console.log('Login OTP sent via Resend', info.id || info);
         return res.json({ ok: true, message: 'OTP sent to email' });
       } catch (mailErr) {
-        console.error('Failed to send login OTP via SMTP:', mailErr);
-        return res.status(500).json({ error: 'Failed to send OTP email', detail: mailErr.message || String(mailErr) });
+        console.error('Failed to send login OTP via Resend:', mailErr);
+        pendingLoginOtps.delete(email);
+
+        if (!isLoginOtpRequired) {
+          console.warn("Login OTP email failed; completing login without OTP because LOGIN_OTP_REQUIRED is not true.");
+          return res.json(buildLoginResponse(firebaseResp.data));
+        }
+
+        return res.status(503).json({
+          error: 'Failed to send OTP email',
+          message: 'Your credentials are valid, but the server could not send the login OTP. Please try again later.',
+          detail: mailErr.message || String(mailErr),
+        });
       }
     }
 
@@ -259,19 +268,10 @@ app.post("/login", async (req, res) => {
       { email, password: record.password, returnSecureToken: true }
     );
 
-    const profile = {
-      uid: firebaseResp.data.localId,
-      email: firebaseResp.data.email,
-      displayName: firebaseResp.data.displayName || email,
-    };
-
     // cleanup
     pendingLoginOtps.delete(email);
 
-    res.json({
-      token: { idToken: firebaseResp.data.idToken },
-      profile,
-    });
+    res.json(buildLoginResponse(firebaseResp.data));
   } catch (err) {
     console.error("Login error:", err.response?.data || err.message || err);
     res.status(400).json({
@@ -368,29 +368,25 @@ app.post('/reset-password', async (req, res) => {
       try {
         const link = await admin.auth().generatePasswordResetLink(email);
 
-        // If SMTP configured, send the link by email from server-side
-        if (transporter) {
+        // If Resend configured, send the link by email from server-side
+        if (resend) {
           try {
-            // re-verify before sending to catch transient issues
-            await transporter.verify();
-            const from = process.env.EMAIL_FROM || `no-reply@${process.env.SMTP_HOST || 'localhost'}`;
-            const info = await transporter.sendMail({
-              from,
+            const info = await resend.emails.send({
+              from: 'KhudaHafiz <onboarding@resend.dev>',
               to: email,
               subject: 'Reset your Khuda Hafiz password',
-              text: `Click the link to reset your password: ${link}`,
               html: `<p>Click the link to reset your password:</p><p><a href="${link}">${link}</a></p>`,
             });
-            console.log('Password reset email sent via SMTP', info.messageId || info);
+            console.log('Password reset email sent via Resend', info.id || info);
             return res.json({ ok: true, message: 'Password reset email sent' });
           } catch (mailErr) {
-            console.error('Failed to send reset email via SMTP:', mailErr);
+            console.error('Failed to send reset email via Resend:', mailErr);
             return res.status(500).json({ error: 'Failed to send reset email', detail: mailErr.message || String(mailErr) });
           }
         }
 
-        // If SMTP is not configured, return an explicit error so frontend doesn't receive the link
-        return res.status(500).json({ error: 'SMTP not configured on server. Password reset email could not be sent.' });
+        // If Resend is not configured, return an explicit error so frontend doesn't receive the link
+        return res.status(500).json({ error: 'Resend not configured on server. Password reset email could not be sent.' });
       } catch (e) {
         console.warn('Admin generatePasswordResetLink failed:', e.message || e);
       }

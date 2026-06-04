@@ -11,7 +11,7 @@ function AuthGuard() {
 
   useEffect(() => {
     if (loading) return;
-    const first = segments[0] || "";
+    const first = String(segments[0] || "");
     // only allow access to these public pages when not authenticated
     const publicPages = [
       "login",
