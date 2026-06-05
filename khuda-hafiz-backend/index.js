@@ -100,7 +100,7 @@ const pendingLoginOtps = new Map();
 
 const isLoginOtpRequired = process.env.LOGIN_OTP_REQUIRED === 'true';
 
-const isSignupOtpRequired = process.env.SIGNUP_OTP_REQUIRED === 'true';
+const isSignupOtpRequired = process.env.SIGNUP_OTP_REQUIRED !== 'false';
 
 // Optional email sender (Resend) - configured via env
 let resend = null;
@@ -121,11 +121,18 @@ async function sendResendEmail({ to, subject, html }) {
 
   const from =
     process.env.RESEND_FROM ||
-    process.env.EMAIL_FROM ||
     'KhudaHafiz <onboarding@resend.dev>';
 
-  const info = await resend.emails.send({ from, to, subject, html });
-  return { provider: 'resend', id: info.id || info };
+  const { data, error } = await resend.emails.send({ from, to, subject, html });
+
+  if (error) {
+    const message = error.message || error.name || JSON.stringify(error);
+    const err = new Error(message);
+    err.resend = error;
+    throw err;
+  }
+
+  return { provider: 'resend', id: data?.id, data };
 }
 
 // ✅ Signup endpoint
@@ -998,6 +1005,15 @@ app.get("/health", (req, res) => {
     status: "ok",
     timestamp: new Date().toISOString(),
     mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    email: {
+      resendConfigured: Boolean(process.env.RESEND_API_KEY),
+      resendFromConfigured: Boolean(process.env.RESEND_FROM),
+      provider: "resend",
+    },
+    firebase: {
+      adminConfigured: Boolean(admin.apps.length),
+      apiKeyConfigured: Boolean(FIREBASE_API_KEY),
+    },
   });
 });
 
