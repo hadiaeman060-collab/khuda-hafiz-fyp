@@ -114,14 +114,29 @@ try {
   console.warn('Resend not available or not configured');
 }
 
+function normalizeResendFrom(value) {
+  const fallback = 'KhudaHafiz <onboarding@resend.dev>';
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+
+  const unquoted = raw.replace(/^['"]|['"]$/g, '').trim();
+  const emailOnlyRe = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+  const namedEmailRe = /^.+\s<[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+>$/;
+
+  if (emailOnlyRe.test(unquoted) || namedEmailRe.test(unquoted)) {
+    return unquoted;
+  }
+
+  console.warn('Invalid RESEND_FROM format; falling back to onboarding sender.');
+  return fallback;
+}
+
 async function sendResendEmail({ to, subject, html }) {
   if (!resend) {
     throw new Error('Resend not configured on server');
   }
 
-  const from =
-    process.env.RESEND_FROM ||
-    'KhudaHafiz <onboarding@resend.dev>';
+  const from = normalizeResendFrom(process.env.RESEND_FROM);
 
   const { data, error } = await resend.emails.send({ from, to, subject, html });
 
