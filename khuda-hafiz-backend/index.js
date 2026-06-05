@@ -100,6 +100,8 @@ const pendingLoginOtps = new Map();
 
 const isLoginOtpRequired = process.env.LOGIN_OTP_REQUIRED === 'true';
 
+const isSignupOtpRequired = process.env.SIGNUP_OTP_REQUIRED === 'true';
+
 // Optional email sender (Resend) - configured via env
 let resend = null;
 try {
@@ -112,6 +114,20 @@ try {
   console.warn('Resend not available or not configured');
 }
 
+async function sendResendEmail({ to, subject, html }) {
+  if (!resend) {
+    throw new Error('Resend not configured on server');
+  }
+
+  const from =
+    process.env.RESEND_FROM ||
+    process.env.EMAIL_FROM ||
+    'KhudaHafiz <onboarding@resend.dev>';
+
+  const info = await resend.emails.send({ from, to, subject, html });
+  return { provider: 'resend', id: info.id || info };
+}
+
 // ✅ Signup endpoint
 app.post("/signup", async (req, res) => {
   try {
@@ -119,9 +135,26 @@ app.post("/signup", async (req, res) => {
 
     if (!email) return res.status(400).json({ error: "email required" });
 
+    const createSignupResponse = async () => {
+      if (!password || !displayName) {
+        return res.status(400).json({ error: 'password and displayName required to complete signup' });
+      }
+
+      const userRecord = await admin.auth().createUser({ email, password, displayName });
+      const token = await admin.auth().createCustomToken(userRecord.uid);
+      return res.json({ token: { idToken: token }, profile: { uid: userRecord.uid, email, displayName, ...extra } });
+    };
+
     // If no OTP provided, generate and send one to the user's email.
     if (!otp) {
-      if (!resend) return res.status(500).json({ error: 'Resend not configured on server' });
+      if (!resend) {
+        if (!isSignupOtpRequired && password && displayName) {
+          console.warn("Resend not configured; completing signup without OTP.");
+          return createSignupResponse();
+        }
+
+        return res.status(500).json({ error: 'Resend not configured on server' });
+      }
 
       // Rate-limit: prevent spamming OTPs (simple approach)
       const prev = pendingOtps.get(email);
@@ -135,8 +168,7 @@ app.post("/signup", async (req, res) => {
       pendingOtps.set(email, { code, expiresAt });
 
       try {
-        const info = await resend.emails.send({
-          from: 'KhudaHafiz <onboarding@resend.dev>',
+        const info = await sendResendEmail({
           to: email,
           subject: 'Your Khuda Hafiz signup OTP',
           html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
@@ -144,7 +176,14 @@ app.post("/signup", async (req, res) => {
         console.log('Signup OTP sent via Resend', info.id || info);
         return res.json({ ok: true, message: 'OTP sent to email' });
       } catch (mailErr) {
+        pendingOtps.delete(email);
         console.error('Failed to send signup OTP via Resend:', mailErr);
+
+        if (!isSignupOtpRequired && password && displayName) {
+          console.warn("Signup OTP email failed; completing signup without OTP because SIGNUP_OTP_REQUIRED is not true.");
+          return createSignupResponse();
+        }
+
         return res.status(500).json({ error: 'Failed to send OTP email', detail: mailErr.message || String(mailErr) });
       }
     }
@@ -158,17 +197,10 @@ app.post("/signup", async (req, res) => {
     }
     if (record.code !== String(otp)) return res.status(400).json({ error: 'Invalid OTP' });
 
-    // Ensure required fields for account creation
-    if (!password || !displayName) return res.status(400).json({ error: 'password and displayName required to complete signup' });
-
-    // Create user in Firebase
-    const userRecord = await admin.auth().createUser({ email, password, displayName });
-    const token = await admin.auth().createCustomToken(userRecord.uid);
-
     // cleanup
     pendingOtps.delete(email);
 
-    res.json({ token: { idToken: token }, profile: { uid: userRecord.uid, email, displayName, ...extra } });
+    return createSignupResponse();
   } catch (err) {
     console.error('Signup error:', err.response?.data || err.message || err);
     res.status(400).json({ error: err.response?.data || err.message || String(err) });
@@ -228,8 +260,7 @@ app.post("/login", async (req, res) => {
       pendingLoginOtps.set(email, { code, expiresAt, password });
 
       try {
-        const info = await resend.emails.send({
-          from: 'KhudaHafiz <onboarding@resend.dev>',
+        const info = await sendResendEmail({
           to: email,
           subject: 'Your Khuda Hafiz login OTP',
           html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
@@ -363,30 +394,23 @@ app.post('/reset-password', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'email required' });
 
-    // Prefer Admin SDK to generate a link
-    if (admin.apps.length) {
+    // Prefer Admin SDK to generate a link when Resend can send it server-side.
+    if (admin.apps.length && resend) {
       try {
         const link = await admin.auth().generatePasswordResetLink(email);
 
-        // If Resend configured, send the link by email from server-side
-        if (resend) {
-          try {
-            const info = await resend.emails.send({
-              from: 'KhudaHafiz <onboarding@resend.dev>',
-              to: email,
-              subject: 'Reset your Khuda Hafiz password',
-              html: `<p>Click the link to reset your password:</p><p><a href="${link}">${link}</a></p>`,
-            });
-            console.log('Password reset email sent via Resend', info.id || info);
-            return res.json({ ok: true, message: 'Password reset email sent' });
-          } catch (mailErr) {
-            console.error('Failed to send reset email via Resend:', mailErr);
-            return res.status(500).json({ error: 'Failed to send reset email', detail: mailErr.message || String(mailErr) });
-          }
+        try {
+          const info = await sendResendEmail({
+            to: email,
+            subject: 'Reset your Khuda Hafiz password',
+            html: `<p>Click the link to reset your password:</p><p><a href="${link}">${link}</a></p>`,
+          });
+          console.log('Password reset email sent via Resend', info.id || info);
+          return res.json({ ok: true, message: 'Password reset email sent' });
+        } catch (mailErr) {
+          console.error('Failed to send reset email via Resend:', mailErr);
+          return res.status(500).json({ error: 'Failed to send reset email', detail: mailErr.message || String(mailErr) });
         }
-
-        // If Resend is not configured, return an explicit error so frontend doesn't receive the link
-        return res.status(500).json({ error: 'Resend not configured on server. Password reset email could not be sent.' });
       } catch (e) {
         console.warn('Admin generatePasswordResetLink failed:', e.message || e);
       }

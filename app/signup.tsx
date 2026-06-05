@@ -46,8 +46,27 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      // Step 1: Request OTP to be sent to the user's email
-      const resp = await axios.post(`${BACKEND_URL}/signup`, { email });
+      // Step 1: Request OTP after sending the pending signup details.
+      // Backend may return a token directly when OTP is not required, same as login.
+      const pendingSignup = {
+        email,
+        displayName: name,
+        phone,
+        password,
+      };
+      const resp = await axios.post(`${BACKEND_URL}/signup`, {
+        email,
+        password,
+        displayName: name,
+        extra: { phone },
+      });
+
+      if (resp.data?.token) {
+        await auth.signIn(resp.data.token, resp.data.profile);
+        router.replace("/home");
+        return;
+      }
+
       if (!resp.data?.ok) {
         return setError(resp.data?.error || "Failed to request OTP");
       }
@@ -57,12 +76,7 @@ export default function SignupScreen() {
         // Store pending details to retrieve on verify screen
         await saveToken(
           "pendingSignup",
-          JSON.stringify({
-            email,
-            displayName: name,
-            phone,
-            password,
-          })
+          JSON.stringify(pendingSignup)
         );
       } catch (e) {
         console.warn("Failed to  persist pending signup details", e);

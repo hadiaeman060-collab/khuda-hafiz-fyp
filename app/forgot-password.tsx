@@ -15,6 +15,7 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
     console.log("ForgotPassword screen mounted");
@@ -52,22 +53,29 @@ export default function ForgotPasswordScreen() {
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
 
           {/* Add top margin before button */}
           {message ? (
             <Text style={{ marginBottom: 12, color: "green" }}>{message}</Text>
           ) : null}
+          {error ? (
+            <Text style={{ marginBottom: 12, color: "red" }}>{error}</Text>
+          ) : null}
           <TouchableOpacity
             style={[styles.button, { marginTop: 40 }]}
             onPress={async () => {
               setMessage(null);
-              if (!isValidEmail(email))
-                return setMessage("Please enter a valid email");
+              setError(null);
+              const normalizedEmail = email.trim();
+              if (!isValidEmail(normalizedEmail))
+                return setError("Please enter a valid email");
               setLoading(true);
               try {
                 const resp = await axios.post(`${API_URL}/reset-password`, {
-                  email,
+                  email: normalizedEmail,
                 });
                 setMessage(
                   resp.data?.message ||
@@ -83,7 +91,7 @@ export default function ForgotPasswordScreen() {
                   err?.response?.data?.detail ||
                   err.message ||
                   "Request failed";
-                setMessage(typeof msg === "string" ? msg : JSON.stringify(msg));
+                setError(typeof msg === "string" ? msg : JSON.stringify(msg));
               } finally {
                 setLoading(false);
               }

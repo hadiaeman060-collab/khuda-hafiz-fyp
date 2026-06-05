@@ -16,7 +16,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { palette, radius, shadow, spacing } from "../constants/theme";
 
 const { width, height } = Dimensions.get("window");
@@ -41,6 +41,7 @@ const NavItem = ({ label, icon, active, onPress }: NavItemProps) => (
 
 export default function BottomNavBar({ activeTab = "Home" }) {
   const router = useRouter();
+  const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const scale = useRef(new Animated.Value(1)).current;
   const positionY = useRef(new Animated.Value(0)).current;
@@ -77,6 +78,11 @@ export default function BottomNavBar({ activeTab = "Home" }) {
   const handleCall = () => {
     setShowConfirm(false);
     Linking.openURL(EMERGENCY_NUMBER);
+  };
+
+  const goTo = (path: string) => {
+    if (pathname === path) return;
+    router.push(path as any);
   };
 
   return (
@@ -149,26 +155,26 @@ export default function BottomNavBar({ activeTab = "Home" }) {
             label="Home"
             icon={require("../assets/icons/home.png")}
             active={activeTab === "Home"}
-            onPress={() => router.push("/home")}
+            onPress={() => goTo("/home")}
           />
           <NavItem
             label="Packages"
             icon={require("../assets/icons/packages.png")}
             active={activeTab === "Packages"}
-            onPress={() => router.push("/basic-package")}
+            onPress={() => goTo("/basic-package")}
           />
           <View style={{ width: 62 }} />
           <NavItem
             label="Contact"
             icon={require("../assets/icons/contact.png")}
             active={activeTab === "Contact"}
-            onPress={() => router.push("/contact")}
+            onPress={() => goTo("/contact")}
           />
           <NavItem
             label="Feedback"
             icon={require("../assets/icons/message.png")}
             active={activeTab === "Feedback"}
-            onPress={() => router.push("/feedback")}
+            onPress={() => goTo("/feedback")}
           />
         </View>
       </SafeAreaView>
