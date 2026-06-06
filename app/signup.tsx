@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Checkbox from "expo-checkbox";
@@ -16,7 +15,6 @@ import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 // Updated import to use Expo public env variable
 import { API_URL } from "../utils/config";
-import { saveToken } from "../utils/auth";
 import { palette, radius, shadow, spacing } from "../constants/theme";
 
 export default function SignupScreen() {
@@ -36,7 +34,7 @@ export default function SignupScreen() {
 
   async function handleSignup() {
     setError(null);
-    // Validate details before requesting OTP
+    // Validate details before creating the account
     if (!name || !email || !password || !confirm) {
       return setError("Name, email, and password are required");
     }
@@ -46,14 +44,6 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      // Step 1: Request OTP after sending the pending signup details.
-      // Backend may return a token directly when OTP is not required, same as login.
-      const pendingSignup = {
-        email,
-        displayName: name,
-        phone,
-        password,
-      };
       const resp = await axios.post(`${BACKEND_URL}/signup`, {
         email,
         password,
@@ -67,33 +57,17 @@ export default function SignupScreen() {
         return;
       }
 
-      if (!resp.data?.ok) {
-        return setError(resp.data?.error || "Failed to request OTP");
-      }
-
-      // Step 2: Persist pending signup details securely, then navigate to verify screen
-      try {
-        // Store pending details to retrieve on verify screen
-        await saveToken(
-          "pendingSignup",
-          JSON.stringify(pendingSignup)
-        );
-      } catch (e) {
-        console.warn("Failed to  persist pending signup details", e);
-      }
-
-      // Navigate to verify email screen with only the email in params
-      router.push({ pathname: "/verify-email", params: { email } });
+      setError(resp.data?.error || "Signup failed");
     } catch (err: any) {
       console.error(
-        "Request OTP failed",
+        "Signup failed",
         err?.response?.data || err.message || err
       );
       const message =
         err?.response?.data?.error ||
         err?.response?.data?.detail ||
         err.message ||
-        "Request OTP failed";
+        "Signup failed";
       setError(typeof message === "string" ? message : JSON.stringify(message));
     } finally {
       setLoading(false);
@@ -144,8 +118,6 @@ export default function SignupScreen() {
             autoCapitalize="none"
           />
 
-          {/* OTP moved to dedicated Verify Email screen */}
-
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
             style={styles.input}
@@ -185,7 +157,7 @@ export default function SignupScreen() {
             </Text>
           </View>
 
-          {/* Sign Up / Request OTP Button */}
+          {/* Sign Up Button */}
           {error ? (
             <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>
           ) : null}
@@ -195,7 +167,7 @@ export default function SignupScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? "Requesting..." : "Sign Up"}
+              {loading ? "Creating..." : "Sign Up"}
             </Text>
           </TouchableOpacity>
           {/* OR */}

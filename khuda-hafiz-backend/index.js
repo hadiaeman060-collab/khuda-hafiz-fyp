@@ -100,8 +100,6 @@ const pendingLoginOtps = new Map();
 
 const isLoginOtpRequired = process.env.LOGIN_OTP_REQUIRED === 'true';
 
-const isSignupOtpRequired = process.env.SIGNUP_OTP_REQUIRED !== 'false';
-
 // Optional email sender (Resend) - configured via env
 let resend = null;
 try {
@@ -153,76 +151,20 @@ async function sendResendEmail({ to, subject, html }) {
 // ✅ Signup endpoint
 app.post("/signup", async (req, res) => {
   try {
-    const { email, password, displayName, extra, otp } = req.body;
+    const { email, password, displayName, extra } = req.body;
 
     if (!email) return res.status(400).json({ error: "email required" });
-
-    const createSignupResponse = async () => {
-      if (!password || !displayName) {
-        return res.status(400).json({ error: 'password and displayName required to complete signup' });
-      }
-
-      const userRecord = await admin.auth().createUser({ email, password, displayName });
-      const token = await admin.auth().createCustomToken(userRecord.uid);
-      return res.json({ token: { idToken: token }, profile: { uid: userRecord.uid, email, displayName, ...extra } });
-    };
-
-    // If no OTP provided, generate and send one to the user's email.
-    if (!otp) {
-      if (!resend) {
-        if (!isSignupOtpRequired && password && displayName) {
-          console.warn("Resend not configured; completing signup without OTP.");
-          return createSignupResponse();
-        }
-
-        return res.status(500).json({ error: 'Resend not configured on server' });
-      }
-
-      // Rate-limit: prevent spamming OTPs (simple approach)
-      const prev = pendingOtps.get(email);
-      if (prev && prev.expiresAt && prev.expiresAt - Date.now() > (9 * 60 * 1000)) {
-        // If a recent OTP was issued within the last minute, don't reissue.
-        return res.status(429).json({ error: 'OTP recently sent. Please check your email.' });
-      }
-
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-      pendingOtps.set(email, { code, expiresAt });
-
-      try {
-        const info = await sendResendEmail({
-          to: email,
-          subject: 'Your Khuda Hafiz signup OTP',
-          html: `<p>Your verification code is <strong>${code}</strong>. It will expire in 10 minutes.</p>`,
-        });
-        console.log('Signup OTP sent via Resend', info.id || info);
-        return res.json({ ok: true, message: 'OTP sent to email' });
-      } catch (mailErr) {
-        pendingOtps.delete(email);
-        console.error('Failed to send signup OTP via Resend:', mailErr);
-
-        if (!isSignupOtpRequired && password && displayName) {
-          console.warn("Signup OTP email failed; completing signup without OTP because SIGNUP_OTP_REQUIRED is not true.");
-          return createSignupResponse();
-        }
-
-        return res.status(500).json({ error: 'Failed to send OTP email', detail: mailErr.message || String(mailErr) });
-      }
+    if (!password || !displayName) {
+      return res.status(400).json({ error: 'password and displayName required' });
     }
 
-    // OTP provided -> verify and create account
-    const record = pendingOtps.get(email);
-    if (!record) return res.status(400).json({ error: 'No OTP requested for this email' });
-    if (record.expiresAt < Date.now()) {
-      pendingOtps.delete(email);
-      return res.status(400).json({ error: 'OTP expired' });
-    }
-    if (record.code !== String(otp)) return res.status(400).json({ error: 'Invalid OTP' });
+    const userRecord = await admin.auth().createUser({ email, password, displayName });
+    const token = await admin.auth().createCustomToken(userRecord.uid);
 
-    // cleanup
-    pendingOtps.delete(email);
-
-    return createSignupResponse();
+    res.json({
+      token: { idToken: token },
+      profile: { uid: userRecord.uid, email, displayName, ...extra },
+    });
   } catch (err) {
     console.error('Signup error:', err.response?.data || err.message || err);
     res.status(400).json({ error: err.response?.data || err.message || String(err) });
